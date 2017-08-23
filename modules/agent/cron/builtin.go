@@ -14,7 +14,9 @@ func SyncBuiltinMetrics() {
 		go syncBuiltinMetrics()
 	}
 }
-
+/*
+周期性通过rpc调用Agent.BuiltinMetrics获取reportUrls、reportPorts、reportProcs、duPaths检查参数
+ */
 func syncBuiltinMetrics() {
 
 	var timestamp int64 = -1
@@ -47,11 +49,11 @@ func syncBuiltinMetrics() {
 			continue
 		}
 
-		if resp.Timestamp <= timestamp {
+		if resp.Timestamp <= timestamp { // timestamp应该是递增的
 			continue
 		}
 
-		if resp.Checksum == checksum {
+		if resp.Checksum == checksum { // checksum一致说明内容没有变
 			continue
 		}
 
@@ -60,7 +62,7 @@ func syncBuiltinMetrics() {
 
 		for _, metric := range resp.Metrics {
 
-			if metric.Metric == g.URL_CHECK_HEALTH {
+			if metric.Metric == g.URL_CHECK_HEALTH { // Tags: url=xxx,stime=yyy. urls[xxx] = stime[yyy]
 				arr := strings.Split(metric.Tags, ",")
 				if len(arr) != 2 {
 					continue
@@ -80,7 +82,7 @@ func syncBuiltinMetrics() {
 				}
 			}
 
-			if metric.Metric == g.NET_PORT_LISTEN {
+			if metric.Metric == g.NET_PORT_LISTEN { // Tags: port=xxx. ports = append(ports, xxx)
 				arr := strings.Split(metric.Tags, "=")
 				if len(arr) != 2 {
 					continue
@@ -95,7 +97,7 @@ func syncBuiltinMetrics() {
 				continue
 			}
 
-			if metric.Metric == g.DU_BS {
+			if metric.Metric == g.DU_BS { // Tags: path=xxx. paths = append(paths, xxx)
 				arr := strings.Split(metric.Tags, "=")
 				if len(arr) != 2 {
 					continue
@@ -105,7 +107,7 @@ func syncBuiltinMetrics() {
 				continue
 			}
 
-			if metric.Metric == g.PROC_NUM {
+			if metric.Metric == g.PROC_NUM { // Tags: name=xxx,cmdline=yyy. tmpMap={1:xxx, 2:yyy}, procs[name=xxx,cmdline=yyy] = tmpMap
 				arr := strings.Split(metric.Tags, ",")
 
 				tmpMap := make(map[int]string)
@@ -122,6 +124,7 @@ func syncBuiltinMetrics() {
 			}
 		}
 
+		// 设置全局变量reportUrls、reportPorts、reportProcs、duPaths
 		g.SetReportUrls(urls)
 		g.SetReportPorts(ports)
 		g.SetReportProcs(procs)

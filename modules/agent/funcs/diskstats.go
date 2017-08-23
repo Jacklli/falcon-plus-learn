@@ -13,7 +13,9 @@ var (
 	diskStatsMap = make(map[string][2]*nux.DiskStats)
 	dsLock       = new(sync.RWMutex)
 )
-
+/*
+更新diskStatsMap，每个设备保留最近2个值
+ */
 func UpdateDiskStats() error {
 	dsList, err := nux.ListDiskStats()
 	if err != nil {

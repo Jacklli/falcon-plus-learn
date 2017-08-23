@@ -23,7 +23,9 @@ func InitRootDir() {
 }
 
 var LocalIp string
-
+/*
+通过连接HBS，获取本机IP
+ */
 func InitLocalIp() {
 	if Config().Heartbeat.Enabled {
 		conn, err := net.DialTimeout("tcp", Config().Heartbeat.Addr, time.Second*10)
@@ -41,7 +43,9 @@ func InitLocalIp() {
 var (
 	HbsClient *SingleConnRpcClient
 )
-
+/*
+创建一个HbsClient *SingleConnRpcClient，这个时候还未连接
+ */
 func InitRpcClients() {
 	if Config().Heartbeat.Enabled {
 		HbsClient = &SingleConnRpcClient{
@@ -50,7 +54,9 @@ func InitRpcClients() {
 		}
 	}
 }
-
+/*
+添加default_tags，发送到transfer（HA/LB）
+ */
 func SendToTransfer(metrics []*model.MetricValue) {
 	if len(metrics) == 0 {
 		return
@@ -67,9 +73,9 @@ func SendToTransfer(metrics []*model.MetricValue) {
 			buf.WriteString(v)
 			default_tags_list = append(default_tags_list, buf.String())
 		}
-		default_tags := strings.Join(default_tags_list, ",")
+		default_tags := strings.Join(default_tags_list, ",") // FMT: a=x,b=y,c=z
 
-		for i, x := range metrics {
+		for i, x := range metrics { // 添加default_tags
 			buf.Reset()
 			if x.Tags == "" {
 				metrics[i].Tags = default_tags
@@ -89,7 +95,7 @@ func SendToTransfer(metrics []*model.MetricValue) {
 	}
 
 	var resp model.TransferResponse
-	SendMetrics(metrics, &resp)
+	SendMetrics(metrics, &resp) // 发送metrics到随机的transfer，直到发送成功
 
 	if debug {
 		log.Println("<=", &resp)
@@ -177,7 +183,9 @@ func TrustableIps() []string {
 	defer ipsLock.Unlock()
 	return ips
 }
-
+/*
+设置全局变量ips
+ */
 func SetTrustableIps(ipStr string) {
 	arr := strings.Split(ipStr, ",")
 	ipsLock.Lock()

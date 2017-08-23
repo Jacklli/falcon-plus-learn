@@ -8,7 +8,9 @@ import (
 	"syscall"
 	"time"
 )
-
+/*
+以string形式返回命令执行的标准输出
+ */
 func CmdOut(name string, arg ...string) (string, error) {
 	cmd := exec.Command(name, arg...)
 	var out bytes.Buffer
@@ -16,7 +18,9 @@ func CmdOut(name string, arg ...string) (string, error) {
 	err := cmd.Run()
 	return out.String(), err
 }
-
+/*
+以[]byte形式返回命令执行的标准输出
+ */
 func CmdOutBytes(name string, arg ...string) ([]byte, error) {
 	cmd := exec.Command(name, arg...)
 	var out bytes.Buffer
@@ -33,18 +37,20 @@ func CmdOutNoLn(name string, arg ...string) (out string, err error) {
 
 	return strings.TrimSpace(string(out)), nil
 }
-
+/*
+等待cmd执行完成，如果超时，则杀掉cmd所在的进程组
+ */
 func CmdRunWithTimeout(cmd *exec.Cmd, timeout time.Duration) (error, bool) {
 	var err error
 
 	//set group id
-	err = syscall.Setpgid(cmd.Process.Pid, cmd.Process.Pid)
+	err = syscall.Setpgid(cmd.Process.Pid, cmd.Process.Pid) // 多此一举???
 	if err != nil {
 		log.Println("Setpgid failed, error:", err)
 	}
 
 	done := make(chan error)
-	go func() {
+	go func() { // ****
 		done <- cmd.Wait()
 	}()
 
@@ -52,12 +58,12 @@ func CmdRunWithTimeout(cmd *exec.Cmd, timeout time.Duration) (error, bool) {
 	case <-time.After(timeout):
 		log.Printf("timeout, process:%s will be killed", cmd.Path)
 
-		go func() {
+		go func() { // 为了让 **** 处的goroutine能够返回
 			<-done // allow goroutine to exit
 		}()
 
 		// cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true} is necessary before cmd.Start()
-		err = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		err = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) // kill 进程组
 		if err != nil {
 			log.Println("kill failed, error:", err)
 		}

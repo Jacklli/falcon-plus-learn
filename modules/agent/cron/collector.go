@@ -10,8 +10,8 @@ import (
 
 func InitDataHistory() {
 	for {
-		funcs.UpdateCpuStat()
-		funcs.UpdateDiskStats()
+		funcs.UpdateCpuStat() // 更新procStatHistory，保存最近historyCount个值
+		funcs.UpdateDiskStats() // 更新diskStatsMap，每个设备保留最近2个值
 		time.Sleep(g.COLLECT_INTERVAL)
 	}
 }
@@ -26,23 +26,25 @@ func Collect() {
 		return
 	}
 
-	for _, v := range funcs.Mappers {
+	for _, v := range funcs.Mappers { // funcs.Mappers分为4类，这里会启动4个goroutine并发执行
 		go collect(int64(v.Interval), v.Fs)
 	}
 }
-
+/*
+周期性调用funcs.Mappers[i].Fs，进行metric采集，并发送至transfer
+ */
 func collect(sec int64, fns []func() []*model.MetricValue) {
 	t := time.NewTicker(time.Second * time.Duration(sec))
 	defer t.Stop()
 	for {
-		<-t.C
+		<-t.C // 相当于sleep
 
 		hostname, err := g.Hostname()
 		if err != nil {
 			continue
 		}
 
-		mvs := []*model.MetricValue{}
+		mvs := []*model.MetricValue{} // 保存结果
 		ignoreMetrics := g.Config().IgnoreMetrics
 
 		for _, fn := range fns {

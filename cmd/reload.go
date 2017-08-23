@@ -12,7 +12,9 @@ Modules:
   `,
 	RunE: reload,
 }
-
+/*
+Nothing !!!
+ */
 func reload(c *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return c.Usage()

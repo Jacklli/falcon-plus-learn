@@ -9,7 +9,12 @@ import (
 	"strconv"
 	"strings"
 )
-
+/*
+遍历relativePath，收集Plugin{FilePath: fpath, MTime: f.ModTime().Unix(), Cycle: cycle}
+FilePath：文件相对路径
+MTime：文件修改时间
+Cycle：文件调度周期，取自文件名
+ */
 // key: sys/ntp/60_ntp.py
 func ListPlugins(relativePath string) map[string]*Plugin {
 	ret := make(map[string]*Plugin)

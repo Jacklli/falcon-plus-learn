@@ -33,7 +33,9 @@ type DiskStats struct {
 func (this *DiskStats) String() string {
 	return fmt.Sprintf("<Device:%s, Major:%d, Minor:%d, ReadRequests:%d...>", this.Device, this.Major, this.Minor, this.ReadRequests)
 }
-
+/*
+解析/proc/diskstats，填充[]*DiskStats
+ */
 func ListDiskStats() ([]*DiskStats, error) {
 	proc_diskstats := "/proc/diskstats"
 	if !file.IsExist(proc_diskstats) {

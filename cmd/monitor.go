@@ -27,13 +27,15 @@ func checkMonReq(name string) error {
 	}
 
 	if !g.HasLogfile(name) {
-		r := g.Rel(g.Cfg(name))
+		r := g.Rel(g.Cfg(name)) // r := g.Rel(g.LogPath(name)) ???
 		return fmt.Errorf("expect logfile: %s", r)
 	}
 
 	return nil
 }
-
+/*
+通过tail -f 日志文件monitor ???
+ */
 func monitor(c *cobra.Command, args []string) error {
 	if len(args) < 1 {
 		return c.Usage()

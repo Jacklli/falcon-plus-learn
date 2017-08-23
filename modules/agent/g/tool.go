@@ -7,7 +7,9 @@ import (
 	"os/exec"
 	"strings"
 )
-
+/*
+调用git rev-parse HEAD查询最新的commitid，作为PluginVersion
+ */
 func GetCurrPluginVersion() string {
 	if !Config().Plugin.Enabled {
 		return "plugin not enabled"
@@ -19,7 +21,7 @@ func GetCurrPluginVersion() string {
 	}
 
 	cmd := exec.Command("git", "rev-parse", "HEAD")
-	cmd.Dir = pluginDir
+	cmd.Dir = pluginDir // 指定执行命令的工作目录
 
 	var out bytes.Buffer
 	cmd.Stdout = &out

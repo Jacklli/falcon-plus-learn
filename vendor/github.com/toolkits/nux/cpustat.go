@@ -56,7 +56,9 @@ func (this *ProcStat) String() string {
 		this.ProcsRunning,
 		this.ProcsBlocked)
 }
-
+/*
+解析/proc/stat，填充*ProcStat
+ */
 func CurrentProcStat() (*ProcStat, error) {
 	f := "/proc/stat"
 	bs, err := ioutil.ReadFile(f)

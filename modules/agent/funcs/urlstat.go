@@ -12,7 +12,9 @@ import (
 	"github.com/toolkits/file"
 	"github.com/toolkits/sys"
 )
-
+/*
+使用curl检查url
+ */
 func UrlMetrics() (L []*model.MetricValue) {
 	reportUrls := g.ReportUrls()
 	sz := len(reportUrls)
@@ -33,7 +35,9 @@ func UrlMetrics() (L []*model.MetricValue) {
 	}
 	return
 }
-
+/*
+调用curl --max-filesize 102400 -I -m 3000 -o /dev/null -s -w "%{http_code}" URL探测，响应码!=200异常
+ */
 func probeUrl(furl string, timeout string) (bool, error) {
 	bs, err := sys.CmdOutBytes("curl", "--max-filesize", "102400", "-I", "-m", timeout, "-o", "/dev/null", "-s", "-w", "%{http_code}", furl)
 	if err != nil {

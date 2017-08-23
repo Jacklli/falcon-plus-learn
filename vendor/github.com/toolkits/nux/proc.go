@@ -20,7 +20,9 @@ type Proc struct {
 func (this *Proc) String() string {
 	return fmt.Sprintf("<Pid:%d, Name:%s, Cmdline:%s>", this.Pid, this.Name, this.Cmdline)
 }
-
+/*
+遍历/proc/<pid>，填充[]*Proc
+ */
 func AllProcs() (ps []*Proc, err error) {
 	var dirs []string
 	dirs, err = file.DirsUnder("/proc")

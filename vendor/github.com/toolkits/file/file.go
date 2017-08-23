@@ -149,7 +149,9 @@ func FileSize(fp string) (int64, error) {
 	}
 	return f.Size(), nil
 }
-
+/*
+返回dirPath目录下的文件夹名
+ */
 // list dirs under dirPath
 func DirsUnder(dirPath string) ([]string, error) {
 	if !IsExist(dirPath) {

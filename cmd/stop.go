@@ -20,7 +20,9 @@ Modules:
   ` + "all " + strings.Join(g.AllModulesInOrder, " "),
 	RunE: stop,
 }
-
+/*
+通过kill -TERM <pid>方式stop
+ */
 func stop(c *cobra.Command, args []string) error {
 	args = g.RmDup(args)
 

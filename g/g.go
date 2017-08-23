@@ -103,22 +103,31 @@ func init() {
 		"alarm",
 	}
 }
-
+/*
+返回可执行文件绝对路径
+ */
 func Bin(name string) string {
 	p, _ := filepath.Abs(BinOf[name])
 	return p
 }
 
+/*
+返回配置文件绝对路径
+ */
 func Cfg(name string) string {
 	p, _ := filepath.Abs(cfgOf[name])
 	return p
 }
-
+/*
+返回日志绝对路径
+ */
 func LogPath(name string) string {
 	p, _ := filepath.Abs(logpathOf[name])
 	return p
 }
-
+/*
+返回日志文件夹绝对路径
+ */
 func LogDir(name string) string {
 	d, _ := filepath.Abs(filepath.Dir(logpathOf[name]))
 	return d

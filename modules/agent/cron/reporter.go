@@ -13,7 +13,9 @@ func ReportAgentStatus() {
 		go reportAgentStatus(time.Duration(g.Config().Heartbeat.Interval) * time.Second)
 	}
 }
-
+/*
+定期调用rpc method：Agent.ReportStatus，上报agent状态
+ */
 func reportAgentStatus(interval time.Duration) {
 	for {
 		hostname, err := g.Hostname()
@@ -25,11 +27,11 @@ func reportAgentStatus(interval time.Duration) {
 			Hostname:      hostname,
 			IP:            g.IP(),
 			AgentVersion:  g.VERSION,
-			PluginVersion: g.GetCurrPluginVersion(),
+			PluginVersion: g.GetCurrPluginVersion(), // 调用git rev-parse HEAD查询最新的commitid，作为PluginVersion
 		}
 
 		var resp model.SimpleRpcResponse
-		err = g.HbsClient.Call("Agent.ReportStatus", req, &resp)
+		err = g.HbsClient.Call("Agent.ReportStatus", req, &resp) // 初始化SingleConnRpcClient.rpcClient，发起rpc调用
 		if err != nil || resp.Code != 0 {
 			log.Println("call Agent.ReportStatus fail:", err, "Request:", req, "Response:", resp)
 		}

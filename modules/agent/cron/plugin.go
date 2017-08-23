@@ -24,7 +24,9 @@ func SyncMinePlugins() {
 
 	go syncMinePlugins()
 }
-
+/*
+定期获取Plugin信息，更新本地Plugin状态
+ */
 func syncMinePlugins() {
 
 	var (
@@ -32,7 +34,7 @@ func syncMinePlugins() {
 		pluginDirs []string
 	)
 
-	duration := time.Duration(g.Config().Heartbeat.Interval) * time.Second
+	duration := time.Duration(g.Config().Heartbeat.Interval) * time.Second // 心跳周期
 
 	for {
 		time.Sleep(duration)
@@ -53,11 +55,11 @@ func syncMinePlugins() {
 			continue
 		}
 
-		if resp.Timestamp <= timestamp {
+		if resp.Timestamp <= timestamp { // Timestamp应该是递增的，不应该比上次的小
 			continue
 		}
 
-		pluginDirs = resp.Plugins
+		pluginDirs = resp.Plugins // plugin目录
 		timestamp = resp.Timestamp
 
 		if g.Config().Debug {
@@ -65,20 +67,20 @@ func syncMinePlugins() {
 		}
 
 		if len(pluginDirs) == 0 {
-			plugins.ClearAllPlugins()
+			plugins.ClearAllPlugins() // 删除所有Plugin及其PluginScheduler
 		}
 
 		desiredAll := make(map[string]*plugins.Plugin)
 
 		for _, p := range pluginDirs {
-			underOneDir := plugins.ListPlugins(strings.Trim(p, "/"))
+			underOneDir := plugins.ListPlugins(strings.Trim(p, "/")) // 遍历pluginDir，收集Plugin信息
 			for k, v := range underOneDir {
 				desiredAll[k] = v
 			}
 		}
 
-		plugins.DelNoUsePlugins(desiredAll)
-		plugins.AddNewPlugins(desiredAll)
+		plugins.DelNoUsePlugins(desiredAll) // 更新Plugins，删除不再需要的Plugin及其PluginScheduler
+		plugins.AddNewPlugins(desiredAll) // 更新Plugins，添加新的Plugin，并进行调度
 
 	}
 }

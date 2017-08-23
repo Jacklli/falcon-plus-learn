@@ -22,7 +22,9 @@ func (this *SingleConnRpcClient) close() {
 		this.rpcClient = nil
 	}
 }
-
+/*
+初始化SingleConnRpcClient.rpcClient
+ */
 func (this *SingleConnRpcClient) serverConn() error {
 	if this.rpcClient != nil {
 		return nil
@@ -49,13 +51,15 @@ func (this *SingleConnRpcClient) serverConn() error {
 		return err
 	}
 }
-
+/*
+初始化SingleConnRpcClient.rpcClient，发起rpc调用
+ */
 func (this *SingleConnRpcClient) Call(method string, args interface{}, reply interface{}) error {
 
 	this.Lock()
 	defer this.Unlock()
 
-	err := this.serverConn()
+	err := this.serverConn() // 初始化SingleConnRpcClient.rpcClient
 	if err != nil {
 		return err
 	}
@@ -64,12 +68,12 @@ func (this *SingleConnRpcClient) Call(method string, args interface{}, reply int
 	done := make(chan error, 1)
 
 	go func() {
-		err := this.rpcClient.Call(method, args, reply)
+		err := this.rpcClient.Call(method, args, reply) // rpc调用
 		done <- err
 	}()
 
 	select {
-	case <-time.After(timeout):
+	case <-time.After(timeout): // 超时处理
 		log.Printf("[WARN] rpc call timeout %v => %v", this.rpcClient, this.RpcServer)
 		this.close()
 	case err := <-done:

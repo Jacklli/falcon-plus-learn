@@ -12,7 +12,9 @@ type Dto struct {
 	Msg  string      `json:"msg"`
 	Data interface{} `json:"data"`
 }
-
+/*
+注册各种http.HandleFunc
+ */
 func init() {
 	configAdminRoutes()
 	configCpuRoutes()

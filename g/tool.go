@@ -6,7 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 )
-
+/*
+判断日志文件是否存在
+ */
 func HasLogfile(name string) bool {
 	if _, err := os.Stat(LogPath(name)); err != nil {
 		return false
@@ -14,6 +16,9 @@ func HasLogfile(name string) bool {
 	return true
 }
 
+/*
+按照AllModulesInOrder，对args进行排序
+ */
 func PreqOrder(moduleArgs []string) []string {
 	if len(moduleArgs) == 0 {
 		return []string{}
@@ -45,6 +50,10 @@ func PreqOrder(moduleArgs []string) []string {
 	return modulesInOrder
 }
 
+/*
+返回配置文件相对于当前工作目录的相对路径
+如当前工作目录/tmp，配置文件路径/etc/open-falcon.conf，则返回../etc/open-falcon.conf
+ */
 func Rel(p string) string {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -62,6 +71,9 @@ func Rel(p string) string {
 	return r
 }
 
+/*
+判断配置文件是否存在
+ */
 func HasCfg(name string) bool {
 	if _, err := os.Stat(Cfg(name)); err != nil {
 		return false
@@ -69,28 +81,41 @@ func HasCfg(name string) bool {
 	return true
 }
 
+/*
+判断是否存在该module
+ */
 func HasModule(name string) bool {
 	return Modules[name]
 }
 
+/*
+调用pgrep获取进程id，并设置PidOf[name] = pidStr
+ */
 func setPid(name string) {
 	output, _ := exec.Command("pgrep", "-f", ModuleApps[name]).Output()
 	pidStr := strings.TrimSpace(string(output))
 	PidOf[name] = pidStr
 }
-
+/*
+获取进程id，保存在PidOf[name]
+ */
 func Pid(name string) string {
 	if PidOf[name] == "<NOT SET>" {
 		setPid(name)
 	}
 	return PidOf[name]
 }
-
+/*
+判断进程是否存在
+ */
 func IsRunning(name string) bool {
 	setPid(name)
 	return Pid(name) != ""
 }
 
+/*
+ string slice去重
+ */
 func RmDup(args []string) []string {
 	if len(args) == 0 {
 		return []string{}

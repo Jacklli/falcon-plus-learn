@@ -12,7 +12,9 @@ func SyncTrustableIps() {
 		go syncTrustableIps()
 	}
 }
-
+/*
+周期性通过rpc调用Agent.TrustableIps，获取IP白名单，并设置全局变量ips
+ */
 func syncTrustableIps() {
 
 	duration := time.Duration(g.Config().Heartbeat.Interval) * time.Second
@@ -27,6 +29,6 @@ func syncTrustableIps() {
 			continue
 		}
 
-		g.SetTrustableIps(ips)
+		g.SetTrustableIps(ips) // 设置全局变量ips
 	}
 }

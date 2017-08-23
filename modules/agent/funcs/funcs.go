@@ -11,7 +11,10 @@ type FuncsAndInterval struct {
 }
 
 var Mappers []FuncsAndInterval
-
+/*
+构造metric采集函数列表，为什么分类???
+ProcMetrics、PortMetrics、DuMetrics、UrlMetrics在进行采集时会现获取配置
+ */
 func BuildMappers() {
 	interval := g.Config().Transfer.Interval
 	Mappers = []FuncsAndInterval{

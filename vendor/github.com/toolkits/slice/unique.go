@@ -1,5 +1,7 @@
 package slice
-
+/*
+[]int64去重
+ */
 func UniqueInt64(s []int64) []int64 {
 	size := len(s)
 	if size == 0 {

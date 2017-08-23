@@ -53,7 +53,10 @@ func ToInt64(filePath string) (int64, error) {
 	}
 	return ret, nil
 }
-
+/*
+循环读取，直到读完完整的一行
+ReadLine is a low-level line-reading primitive. Most callers should use ReadBytes('\n') or ReadString('\n') instead or use a Scanner.
+ */
 func ReadLine(r *bufio.Reader) ([]byte, error) {
 	line, isPrefix, err := r.ReadLine()
 	for isPrefix && err == nil {

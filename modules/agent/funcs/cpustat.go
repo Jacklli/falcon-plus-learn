@@ -14,7 +14,11 @@ var (
 	procStatHistory [historyCount]*nux.ProcStat
 	psLock          = new(sync.RWMutex)
 )
-
+/*
+更新procStatHistory，保存最近historyCount个值
+procStatHistory[0] >= procStatHistory[1]
+ps >= procStatHistory[0]
+ */
 func UpdateCpuStat() error {
 	ps, err := nux.CurrentProcStat()
 	if err != nil {

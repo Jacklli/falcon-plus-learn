@@ -19,7 +19,7 @@ import (
 	"os"
 
 	"github.com/open-falcon/falcon-plus/cmd"
-	"github.com/spf13/cobra"
+	"github.com/spf13/cobra"  // Cobra is a library providing a simple interface to create powerful modern CLI interfaces similar to git & go tools.
 )
 
 var versionFlag bool
@@ -54,3 +54,62 @@ func main() {
 		os.Exit(1)
 	}
 }
+
+
+/* ********** COBRA DEMO **********
+package main
+
+import (
+        "fmt"
+        "os"
+
+        "github.com/spf13/cobra"
+)
+
+var versionFlag bool
+
+var PreqOrderFlag bool
+var ConsoleOutputFlag bool
+
+var Start = &cobra.Command{
+        Use:   "start [Module ...]",
+        Short: "Start Open-Falcon modules",
+        Long: `
+                                Start the specified Open-Falcon modules and run until a stop command is received.
+                                A module represents a single node in a cluster.
+                                Modules:
+                                        `,
+        RunE: func(c *cobra.Command, args []string) error {
+                fmt.Printf("Start with PreqOrderFlag: %v ConsoleOutputFlag: %v, args: %s\n", PreqOrderFlag, ConsoleOutputFlag, args)
+                return nil
+        },
+        SilenceUsage:  true,
+        SilenceErrors: true,
+}
+
+var RootCmd = &cobra.Command{
+        Use: "open-falcon",
+        RunE: func(c *cobra.Command, args []string) error {
+                if versionFlag {
+                        fmt.Printf("Open-Falcon version %d, build %d\n", 1, 2)
+                        return nil
+                }
+                return c.Usage()
+        },
+}
+
+func init() {
+        RootCmd.AddCommand(Start)
+
+        RootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "show version")
+        Start.Flags().BoolVar(&PreqOrderFlag, "preq-order", false, "start modules in the order of prerequisites")
+        Start.Flags().BoolVar(&ConsoleOutputFlag, "console-output", false, "print the module's output to the console")
+}
+
+func main() {
+        if err := RootCmd.Execute(); err != nil {
+                fmt.Println(err)
+                os.Exit(1)
+        }
+}
+ ********** COBRA DEMO ********** */

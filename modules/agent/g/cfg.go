@@ -59,7 +59,9 @@ var (
 	config     *GlobalConfig
 	lock       = new(sync.RWMutex)
 )
-
+/*
+返回全局配置config
+ */
 func Config() *GlobalConfig {
 	lock.RLock()
 	defer lock.RUnlock()
@@ -72,18 +74,15 @@ func Hostname() (string, error) {
 		return hostname, nil
 	}
 
-	if os.Getenv("FALCON_ENDPOINT") != "" {
-		hostname = os.Getenv("FALCON_ENDPOINT")
-		return hostname, nil
-	}
-
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Println("ERROR: os.Hostname() fail", err)
 	}
 	return hostname, err
 }
-
+/*
+优先使用配置文件制定的IP，否则使用LocalIp
+ */
 func IP() string {
 	ip := Config().IP
 	if ip != "" {
@@ -97,7 +96,9 @@ func IP() string {
 
 	return ip
 }
-
+/*
+加载配置文件到GlobalConfig
+ */
 func ParseConfig(cfg string) {
 	if cfg == "" {
 		log.Fatalln("use -c to specify configuration file")
@@ -109,13 +110,13 @@ func ParseConfig(cfg string) {
 
 	ConfigFile = cfg
 
-	configContent, err := file.ToTrimString(cfg)
+	configContent, err := file.ToTrimString(cfg) // strings.TrimSpace(string(ioutil.ReadFile(cfg)))
 	if err != nil {
 		log.Fatalln("read config file:", cfg, "fail:", err)
 	}
 
 	var c GlobalConfig
-	err = json.Unmarshal([]byte(configContent), &c)
+	err = json.Unmarshal([]byte(configContent), &c) // string -> json
 	if err != nil {
 		log.Fatalln("parse config file:", cfg, "fail:", err)
 	}

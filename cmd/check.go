@@ -17,7 +17,9 @@ Modules:
   ` + "all " + strings.Join(g.AllModulesInOrder, " "),
 	RunE: check,
 }
-
+/*
+检查模块是否在运行
+ */
 func check(c *cobra.Command, args []string) error {
 	args = g.RmDup(args)
 
