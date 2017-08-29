@@ -6,7 +6,14 @@ import (
 	"log"
 	"strings"
 )
+/*
+查询所有active的Expression
 
+SQL: select id, expression, func, op, right_value, max_step, priority, note, action_id from expression where action_id>0 and pause=0
+
+返回：
+[&model.Expression{}, &model.Expression{}, &model.Expression{}]
+ */
 func QueryExpressions() (ret []*model.Expression, err error) {
 	sql := "select id, expression, func, op, right_value, max_step, priority, note, action_id from expression where action_id>0 and pause=0"
 	rows, err := DB.Query(sql)
@@ -36,7 +43,7 @@ func QueryExpressions() (ret []*model.Expression, err error) {
 			continue
 		}
 
-		e.Metric, e.Tags, err = parseExpression(exp)
+		e.Metric, e.Tags, err = parseExpression(exp) // 解析Expression，格式(metric=qps k1=v1 k2=v2)
 		if err != nil {
 			log.Println("ERROR:", err)
 			continue
@@ -47,7 +54,10 @@ func QueryExpressions() (ret []*model.Expression, err error) {
 
 	return ret, nil
 }
-
+/*
+解析Expression，格式(metric=qps k1=v1 k2=v2)
+如果合法，则返回metric和除metric之外的tags
+ */
 func parseExpression(exp string) (metric string, tags map[string]string, err error) {
 	left := strings.Index(exp, "(")
 	right := strings.Index(exp, ")")

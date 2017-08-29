@@ -19,9 +19,11 @@ func (this *SafeHostGroupsMap) GetGroupIds(hid int) ([]int, bool) {
 	gids, exists := this.M[hid]
 	return gids, exists
 }
-
+/*
+查询hostgroup id对应的host id，保存到HostGroupsMap.M
+ */
 func (this *SafeHostGroupsMap) Init() {
-	m, err := db.QueryHostGroups()
+	m, err := db.QueryHostGroups() // 查询hostgroup id对应的host id
 	if err != nil {
 		return
 	}

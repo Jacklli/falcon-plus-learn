@@ -20,9 +20,11 @@ func (this *SafeGroupPlugins) GetPlugins(gid int) ([]string, bool) {
 	plugins, exists := this.M[gid]
 	return plugins, exists
 }
-
+/*
+查询hostgroup id对应的plugin dir，保存到GroupPlugins.M
+ */
 func (this *SafeGroupPlugins) Init() {
-	m, err := db.QueryPlugins()
+	m, err := db.QueryPlugins() // 查询hostgroup id对应的plugin dir
 	if err != nil {
 		return
 	}

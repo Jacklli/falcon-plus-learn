@@ -76,7 +76,7 @@ type SysProcAttr struct {
 cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}的作用：
 将子进程的进程组id设置成与进程id一样，方便后面使用kill -<pgid>的方式杀掉整个进程组，如果不设置{Setpgid: true}，则子进程的进程组id继承自父进程，子进程与父进程同属一个进程组
 
-测试程序:
+测试demo:
 package main
 
 import (

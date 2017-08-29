@@ -52,7 +52,7 @@ func (t *Agent) BuiltinMetrics(args *model.AgentHeartbeatRequest, reply *model.B
 
 	checksum := ""
 	if len(metrics) > 0 {
-		checksum = DigestBuiltinMetrics(metrics)
+		checksum = DigestBuiltinMetrics(metrics) // 计算md5值，只在有变动时传输
 	}
 
 	if args.Checksum == checksum {

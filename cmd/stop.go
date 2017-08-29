@@ -24,22 +24,23 @@ Modules:
 通过kill -TERM <pid>方式stop
  */
 func stop(c *cobra.Command, args []string) error {
-	args = g.RmDup(args)
+	args = g.RmDup(args)  // args去重
 
 	if len(args) == 0 {
 		args = g.AllModulesInOrder
 	}
 
 	for _, moduleName := range args {
-		if !g.HasModule(moduleName) {
+		if !g.HasModule(moduleName) {  // 判断module是否存在
 			return fmt.Errorf("%s doesn't exist", moduleName)
 		}
 
-		if !g.IsRunning(moduleName) {
+		if !g.IsRunning(moduleName) {  // 判断进程是否存在
 			fmt.Print("[", g.ModuleApps[moduleName], "] down\n")
 			continue
 		}
 
+		// 使用kill -TREM <pid>结束进程
 		cmd := exec.Command("kill", "-TERM", g.Pid(moduleName))
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

@@ -19,7 +19,9 @@ import (
 	"sort"
 	"strings"
 )
-
+/*
+将tags按key排序，{a:1, c:2, b:3} -> "a=1,b=2,c=3"
+ */
 func SortedTags(tags map[string]string) string {
 	if tags == nil {
 		return ""

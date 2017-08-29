@@ -4,7 +4,18 @@ import (
 	"github.com/open-falcon/falcon-plus/common/model"
 	"log"
 )
+/*
+查询hostgroup id对应的template id
 
+SQL: select grp_id, tpl_id from grp_tpl
+
+返回：
+{
+  grp_id1: [tpl_id1, tpl_id2, tpl_id3],
+  grp_id2: [tpl_id1, tpl_id2, tpl_id5],
+  grp_id3: [tpl_id3, tpl_id4],
+}
+ */
 func QueryGroupTemplates() (map[int][]int, error) {
 	m := make(map[int][]int)
 
@@ -35,6 +46,18 @@ func QueryGroupTemplates() (map[int][]int, error) {
 }
 
 // 获取所有的策略模板列表
+/*
+查询所有template信息
+
+SQL: select id, tpl_name, parent_id, action_id, create_user from tpl
+
+返回：
+{
+  Templateid1: &model.Template{},
+  Templateid2: &model.Template{},
+  Templateid3: &model.Template{},
+}
+ */
 func QueryTemplates() (map[int]*model.Template, error) {
 
 	templates := make(map[int]*model.Template)
@@ -61,6 +84,18 @@ func QueryTemplates() (map[int]*model.Template, error) {
 }
 
 // 一个机器ID对应了多个模板ID
+/*
+查询host id对应的template id
+
+SQL: select a.tpl_id, b.host_id from grp_tpl as a inner join grp_host as b on a.grp_id=b.grp_id
+
+返回：
+{
+  hostid1: [templateid1, templateid2, templateid3],
+  hostid2: [templateid1, templateid2, templateid4],
+  hostid3: [templateid4, templateid5],
+}
+ */
 func QueryHostTemplateIds() (map[int][]int, error) {
 	ret := make(map[int][]int)
 	rows, err := DB.Query("select a.tpl_id, b.host_id from grp_tpl as a inner join grp_host as b on a.grp_id=b.grp_id")

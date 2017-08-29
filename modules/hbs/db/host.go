@@ -6,7 +6,18 @@ import (
 	"log"
 	"time"
 )
+/*
+查询hostsname对应的host id
 
+SQL: select id, hostname from host
+
+返回:
+{
+  "hostname1": id1,
+  "hostname2": id2,
+  "hostname3": id3,
+}
+ */
 func QueryHosts() (map[string]int, error) {
 	m := make(map[string]int)
 
@@ -35,7 +46,18 @@ func QueryHosts() (map[string]int, error) {
 
 	return m, nil
 }
+/*
+查询所有active的host
 
+SQL: select id, hostname from host where maintain_begin > now() or maintain_end < now()
+
+返回：
+{
+  hostid1: &model.Host{},
+  hostid2: &model.Host{},
+  hostid3: &model.Host{},
+}
+ */
 func QueryMonitoredHosts() (map[int]*model.Host, error) {
 	hosts := make(map[int]*model.Host)
 	now := time.Now().Unix()

@@ -7,11 +7,22 @@ import (
 	"log"
 )
 
-var DB *sql.DB
+/*
+import _ "github.com/go-sql-driver/mysql" 为了执行init函数
 
+#  mysql/driver.go
+func init() {
+	sql.Register("mysql", &MySQLDriver{})
+}
+ */
+
+var DB *sql.DB
+/*
+连接数据库
+ */
 func Init() {
 	var err error
-	DB, err = sql.Open("mysql", g.Config().Database)
+	DB, err = sql.Open("mysql", g.Config().Database) // DSN: username:password@protocol(address)/dbname?param=value
 	if err != nil {
 		log.Fatalln("open db fail:", err)
 	}

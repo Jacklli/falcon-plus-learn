@@ -3,7 +3,18 @@ package db
 import (
 	"log"
 )
+/*
+查询hostgroup id对应的plugin dir
 
+SQL: select grp_id, dir from plugin_dir
+
+返回:
+{
+  grp_id1: ["plugin dir1", "plugin dir2"],
+  grp_id2: ["plugin dir1", "plugin dir3"],
+  grp_id3: ["plugin dir4"],
+}
+ */
 func QueryPlugins() (map[int][]string, error) {
 	m := make(map[int][]string)
 

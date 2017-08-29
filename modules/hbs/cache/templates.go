@@ -20,9 +20,11 @@ func (this *SafeGroupTemplates) GetTemplateIds(gid int) ([]int, bool) {
 	templateIds, exists := this.M[gid]
 	return templateIds, exists
 }
-
+/*
+查询hostgroup id对应的template id，保存到GroupTemplates.M
+ */
 func (this *SafeGroupTemplates) Init() {
-	m, err := db.QueryGroupTemplates()
+	m, err := db.QueryGroupTemplates() // 查询hostgroup id对应的template id
 	if err != nil {
 		return
 	}
@@ -38,15 +40,19 @@ type SafeTemplateCache struct {
 }
 
 var TemplateCache = &SafeTemplateCache{M: make(map[int]*model.Template)}
-
+/*
+返回缓存的TemplateCache.M
+ */
 func (this *SafeTemplateCache) GetMap() map[int]*model.Template {
 	this.RLock()
 	defer this.RUnlock()
 	return this.M
 }
-
+/*
+查询所有template信息，保存到TemplateCache.M
+ */
 func (this *SafeTemplateCache) Init() {
-	ts, err := db.QueryTemplates()
+	ts, err := db.QueryTemplates() // 查询所有template信息
 	if err != nil {
 		return
 	}
@@ -68,9 +74,11 @@ func (this *SafeHostTemplateIds) GetMap() map[int][]int {
 	defer this.RUnlock()
 	return this.M
 }
-
+/*
+查询host id对应的template id，保存到HostTemplateIds.M
+ */
 func (this *SafeHostTemplateIds) Init() {
-	m, err := db.QueryHostTemplateIds()
+	m, err := db.QueryHostTemplateIds() // 查询host id对应的template id
 	if err != nil {
 		return
 	}

@@ -21,9 +21,11 @@ func (this *SafeHostMap) GetID(hostname string) (int, bool) {
 	id, exists := this.M[hostname]
 	return id, exists
 }
-
+/*
+查询hostsname对应的host id，保存到HostMap.M
+ */
 func (this *SafeHostMap) Init() {
-	m, err := db.QueryHosts()
+	m, err := db.QueryHosts() // 查询hostsname对应的host id
 	if err != nil {
 		return
 	}
@@ -45,9 +47,11 @@ func (this *SafeMonitoredHosts) Get() map[int]*model.Host {
 	defer this.RUnlock()
 	return this.M
 }
-
+/*
+查询所有active的host，保存到MonitoredHosts.M
+ */
 func (this *SafeMonitoredHosts) Init() {
-	m, err := db.QueryMonitoredHosts()
+	m, err := db.QueryMonitoredHosts() // 查询所有active的host
 	if err != nil {
 		return
 	}

@@ -18,9 +18,11 @@ func (this *SafeExpressionCache) Get() []*model.Expression {
 	defer this.RUnlock()
 	return this.L
 }
-
+/*
+查询所有active的Expression，保存到ExpressionCache.L
+ */
 func (this *SafeExpressionCache) Init() {
-	es, err := db.QueryExpressions()
+	es, err := db.QueryExpressions() // 查询所有active的Expression
 	if err != nil {
 		return
 	}

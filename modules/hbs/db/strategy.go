@@ -10,6 +10,21 @@ import (
 )
 
 // 获取所有的Strategy列表
+/*
+查询所有active（根据run_begin和run_end）的策略信息
+
+SQL: select s.id, s.metric, s.tags, s.func, s.op, s.right_value, s.max_step, s.priority, s.note, s.tpl_id
+         from strategy as s where (s.run_begin='' and s.run_end='')
+         or (s.run_begin <= now() and s.run_end > now())
+         or (s.run_begin > s.run_end and !(s.run_begin > now() and s.run_end < now()))
+
+返回：
+{
+  Strategyid1: &model.Strategy{},
+  Strategyid2: &model.Strategy{},
+  Strategyid3: &model.Strategy{},
+}
+*/
 func QueryStrategies(tpls map[int]*model.Template) (map[int]*model.Strategy, error) {
 	ret := make(map[int]*model.Strategy)
 
@@ -72,7 +87,9 @@ func QueryStrategies(tpls map[int]*model.Template) (map[int]*model.Strategy, err
 
 	return ret, nil
 }
-
+/*
+查询tpl_ids对应的strategy中('net.port.listen', 'proc.num', 'du.bs', 'url.check.health')类型的metric信息
+ */
 func QueryBuiltinMetrics(tids string) ([]*model.BuiltinMetric, error) {
 	sql := fmt.Sprintf(
 		"select metric, tags from strategy where tpl_id in (%s) and metric in ('net.port.listen', 'proc.num', 'du.bs', 'url.check.health')",

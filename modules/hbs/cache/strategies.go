@@ -22,9 +22,11 @@ func (this *SafeStrategies) GetMap() map[int]*model.Strategy {
 	defer this.RUnlock()
 	return this.M
 }
-
+/*
+查询所有active（根据run_begin和run_end）的策略信息，保存到SafeStrategies.M
+ */
 func (this *SafeStrategies) Init(tpls map[int]*model.Template) {
-	m, err := db.QueryStrategies(tpls)
+	m, err := db.QueryStrategies(tpls) // 查询所有active（根据run_begin和run_end）的策略信息
 	if err != nil {
 		return
 	}
@@ -67,7 +69,7 @@ func GetBuiltinMetrics(hostname string) ([]*model.BuiltinMetric, error) {
 	// 继续寻找这些tid的ParentId
 	allTpls := TemplateCache.GetMap()
 	for _, tid := range tidSlice {
-		pids := ParentIds(allTpls, tid)
+		pids := ParentIds(allTpls, tid) // 获取tid的parentid列表，如[tid, pid1, pid2...]
 		for _, pid := range pids {
 			tidSet.Add(pid)
 		}
@@ -83,9 +85,12 @@ func GetBuiltinMetrics(hostname string) ([]*model.BuiltinMetric, error) {
 		tidStrArr[i] = strconv.Itoa(tidSlice[i])
 	}
 
+	// 查询tpl_ids对应的strategy中('net.port.listen', 'proc.num', 'du.bs', 'url.check.health')类型的metric信息
 	return db.QueryBuiltinMetrics(strings.Join(tidStrArr, ","))
 }
-
+/*
+获取tid的parentid列表，如[tid, pid1, pid2...]
+ */
 func ParentIds(allTpls map[int]*model.Template, tid int) (ret []int) {
 	depth := 0
 	for {

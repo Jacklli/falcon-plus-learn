@@ -3,7 +3,18 @@ package db
 import (
 	"log"
 )
+/*
+查询hostgroup id对应的host id
 
+SQL: select grp_id, host_id from grp_host
+
+返回：
+{
+  grp_id1: [host_id1, host_id2, host_id3],
+  grp_id2: [host_id1, host_id2, host_id4],
+  grp_id3: [host_id4, host_id5, host_id6],
+}
+ */
 func QueryHostGroups() (map[int][]int, error) {
 	m := make(map[int][]int)
 
