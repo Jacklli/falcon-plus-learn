@@ -55,7 +55,9 @@ func SortedTags(tags map[string]string) string {
 
 	return strings.Join(ret, ",")
 }
-
+/*
+将tags由string转换成map
+ */
 func DictedTagstring(s string) map[string]string {
 	if s == "" {
 		return map[string]string{}

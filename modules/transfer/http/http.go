@@ -14,7 +14,9 @@ type Dto struct {
 	Msg  string      `json:"msg"`
 	Data interface{} `json:"data"`
 }
-
+/*
+启动httpserver，提供运行状态查询、统计信息查询、上报数据等接口
+ */
 func Start() {
 	go startHttpServer()
 }

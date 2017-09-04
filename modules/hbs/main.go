@@ -47,8 +47,8 @@ func main() {
 
 	go cache.DeleteStaleAgents() // 每天运行一次，删除内存中超过一天没有心跳的agent
 
-	go http.Start() // 启动http server
-	go rpc.Start() // 启动rpc server
+	go http.Start() // 启动http server，提供运行状态和报警配置信息查询
+	go rpc.Start() // 启动rpc server，提供心跳、配置下载等接口
 
 	/*
 	程序退出信号处理，golang中的信号处理，请看底部demo

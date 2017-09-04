@@ -42,6 +42,9 @@ func RecvMetricValues(args []*cmodel.MetricValue, reply *cmodel.TransferResponse
 	start := time.Now()
 	reply.Invalid = 0
 
+	/*
+	对agent发送的数据进行合法性校验和类型转换，存入items
+	 */
 	items := []*cmodel.MetaData{}
 	for _, v := range args {
 		if v == nil {
@@ -93,14 +96,14 @@ func RecvMetricValues(args []*cmodel.MetricValue, reply *cmodel.TransferResponse
 			Timestamp:   v.Timestamp,
 			Step:        v.Step,
 			CounterType: v.Type,
-			Tags:        cutils.DictedTagstring(v.Tags), //TODO tags键值对的个数,要做一下限制
+			Tags:        cutils.DictedTagstring(v.Tags), // string -> map //TODO tags键值对的个数,要做一下限制
 		}
 
 		valid := true
 		var vv float64
 		var err error
 
-		switch cv := v.Value.(type) {
+		switch cv := v.Value.(type) { // 使用type asseration转换value的值
 		case string:
 			vv, err = strconv.ParseFloat(cv, 64)
 			if err != nil {
@@ -134,16 +137,19 @@ func RecvMetricValues(args []*cmodel.MetricValue, reply *cmodel.TransferResponse
 
 	cfg := g.Config()
 
+	/*
+	将准备好的数据items，放到发送队列
+	 */
 	if cfg.Graph.Enabled {
-		sender.Push2GraphSendQueue(items)
+		sender.Push2GraphSendQueue(items) // 将数据 打入 某个Graph的发送缓存队列, 具体是哪一个Graph 由一致性哈希 决定
 	}
 
 	if cfg.Judge.Enabled {
-		sender.Push2JudgeSendQueue(items)
+		sender.Push2JudgeSendQueue(items) // 将数据 打入 某个Judge的发送缓存队列, 具体是哪一个Judge 由一致性哈希 决定
 	}
 
 	if cfg.Tsdb.Enabled {
-		sender.Push2TsdbSendQueue(items)
+		sender.Push2TsdbSendQueue(items) // 将原始数据入到tsdb发送缓存队列
 	}
 
 	reply.Message = "ok"

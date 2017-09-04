@@ -15,28 +15,33 @@ const (
 
 // send_cron程序入口
 func startSenderCron() {
-	go startProcCron()
-	go startLogCron()
+	go startProcCron() // 更新JudgeQueuesCnt和GraphQueuesCnt的统计信息
+	go startLogCron() // 打印GraphConnPools的统计信息
 }
 
 func startProcCron() {
 	for {
 		time.Sleep(DefaultProcCronPeriod)
-		refreshSendingCacheSize()
+		refreshSendingCacheSize() // 设置JudgeQueuesCnt和GraphQueuesCnt的统计信息
 	}
 }
 
 func startLogCron() {
 	for {
 		time.Sleep(DefaultLogCronPeriod)
-		logConnPoolsProc()
+		logConnPoolsProc() // 打印GraphConnPools的统计信息
 	}
 }
-
+/*
+设置JudgeQueuesCnt和GraphQueuesCnt的统计信息
+ */
 func refreshSendingCacheSize() {
 	proc.JudgeQueuesCnt.SetCnt(calcSendCacheSize(JudgeQueues))
 	proc.GraphQueuesCnt.SetCnt(calcSendCacheSize(GraphQueues))
 }
+/*
+计算JudgeQueues的item总数
+ */
 func calcSendCacheSize(mapList map[string]*list.SafeListLimited) int64 {
 	var cnt int64 = 0
 	for _, list := range mapList {
@@ -46,7 +51,9 @@ func calcSendCacheSize(mapList map[string]*list.SafeListLimited) int64 {
 	}
 	return cnt
 }
-
+/*
+打印GraphConnPools的统计信息
+ */
 func logConnPoolsProc() {
 	log.Printf("connPools proc: \n%v", strings.Join(GraphConnPools.Proc(), "\n"))
 }

@@ -5,7 +5,9 @@ import (
 	"log"
 	"net"
 )
-
+/*
+支持使用telnet方式按行上报item
+ */
 func StartSocket() {
 	if !g.Config().Socket.Enabled {
 		return
@@ -33,6 +35,6 @@ func StartSocket() {
 			continue
 		}
 
-		go socketTelnetHandle(conn)
+		go socketTelnetHandle(conn) // 使用telnet，按行读取item，转换成*cmodel.MetaData放入发送队列
 	}
 }

@@ -6,7 +6,9 @@ type Semaphore struct {
 	bufSize int
 	channel chan int8
 }
-
+/*
+使用管道模拟的信号量
+ */
 func NewSemaphore(concurrencyNum int) *Semaphore {
 	return &Semaphore{channel: make(chan int8, concurrencyNum), bufSize: concurrencyNum}
 }

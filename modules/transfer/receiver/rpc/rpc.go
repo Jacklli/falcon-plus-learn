@@ -7,7 +7,9 @@ import (
 	"net/rpc"
 	"net/rpc/jsonrpc"
 )
-
+/*
+启动rpc server，调用transfer.Update将agent上报的item，放入对应的发送队列
+ */
 func StartRpc() {
 	if !g.Config().Rpc.Enabled {
 		return
@@ -35,6 +37,6 @@ func StartRpc() {
 			log.Println("listener.Accept occur error:", err)
 			continue
 		}
-		go server.ServeCodec(jsonrpc.NewServerCodec(conn))
+		go server.ServeCodec(jsonrpc.NewServerCodec(conn)) // 绑定rpc的编码器，使用http connection新建一个jsonrpc编码器，并将该编码器绑定给http处理器
 	}
 }

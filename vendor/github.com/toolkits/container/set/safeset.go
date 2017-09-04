@@ -46,7 +46,9 @@ func (this *SafeSet) Size() int {
 	this.RUnlock()
 	return len
 }
-
+/*
+将map的key转换成slice
+ */
 func (this *SafeSet) ToSlice() []string {
 	this.RLock()
 	defer this.RUnlock()

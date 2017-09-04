@@ -5,7 +5,10 @@ import (
 	"github.com/open-falcon/falcon-plus/modules/transfer/g"
 	rings "github.com/toolkits/consistent/rings"
 )
-
+/*
+初始化一致性hash信息，如副本数量、节点信息
+一致性哈希请参考：http://blog.csdn.net/cywosp/article/details/23397179/
+ */
 func initNodeRings() {
 	cfg := g.Config()
 

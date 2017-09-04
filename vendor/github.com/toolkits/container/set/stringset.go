@@ -3,13 +3,17 @@ package set
 type StringSet struct {
 	M map[string]struct{}
 }
-
+/*
+创建一个set（map[string]struct{}），存储string
+ */
 func NewStringSet() *StringSet {
 	return &StringSet{
 		M: make(map[string]struct{}),
 	}
 }
-
+/*
+讲一个string加入set，这里是一个"host:port"
+ */
 func (this *StringSet) Add(elt string) *StringSet {
 	this.M[elt] = struct{}{}
 	return this

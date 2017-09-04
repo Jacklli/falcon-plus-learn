@@ -27,15 +27,15 @@ func main() {
 	}
 
 	// global config
-	g.ParseConfig(*cfg)
+	g.ParseConfig(*cfg) // 加载配置文件到GlobalConfig
 	// proc
 	proc.Start()
 
-	sender.Start()
-	receiver.Start()
+	sender.Start() // 创建连接池、发送队列，初始化一致性哈希，启动发送goroutine
+	receiver.Start() // 创建rpcServer和telnetServer，将上报的item放入对应的发送队列
 
 	// http
-	http.Start()
+	http.Start() // 启动httpserver，提供运行状态查询、统计信息查询、上报数据等接口
 
 	select {}
 }

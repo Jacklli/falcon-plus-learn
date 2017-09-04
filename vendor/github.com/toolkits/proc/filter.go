@@ -77,7 +77,14 @@ const (
 	MinPositiveFloat64 = 0.000001
 	MaxNegativeFloat64 = -0.000001
 )
-
+/*
+float比较大小
+用==从语法上说没错，但是本来应该相等的两个浮点数由于计算机内部表示的原因可能略有微小的误差，这时用==就会认为它们不等。
+应该使用两个浮点数之间的差异的绝对值小于某个可以接受的值来判断判断它们是否相等
+请参考：
+https://coderwall.com/p/pzhz9q/comparing-floating-point-integers-in-golang
+https://gist.github.com/cevaris/bc331cbe970b03816c6b
+ */
 func compute(opt string, left float64, right float64) bool {
 	switch opt {
 	case "eq":

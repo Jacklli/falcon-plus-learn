@@ -42,7 +42,9 @@ var (
 	TsdbConnPoolHelper *backend.TsdbConnPoolHelper
 	GraphConnPools     *backend.SafeRpcConnPools
 )
-
+/*
+创建连接池、发送队列，初始化一致性哈希，启动发送goroutine
+ */
 // 初始化数据发送服务, 在main函数中调用
 func Start() {
 	// 初始化默认参数
@@ -51,20 +53,20 @@ func Start() {
 		MinStep = 30 //默认30s
 	}
 	//
-	initConnPools()
-	initSendQueues()
-	initNodeRings()
+	initConnPools() // 创建judge,tsdb,graph的rpc连接池
+	initSendQueues() // 创建judge、graph、tsdb的发送队列
+	initNodeRings()// 初始化一致性hash信息，如副本数量、节点信息
 	// SendTasks依赖基础组件的初始化,要最后启动
-	startSendTasks()
-	startSenderCron()
+	startSendTasks() // 开启goroutine: forward2JudgeTask、forward2GraphTask、forward2TsdbTask发送SendQueue中的数据
+	startSenderCron() // 更新JudgeQueuesCnt和GraphQueuesCnt的统计信息，打印GraphConnPools的统计信息
 	log.Println("send.Start, ok")
 }
 
 // 将数据 打入 某个Judge的发送缓存队列, 具体是哪一个Judge 由一致性哈希 决定
 func Push2JudgeSendQueue(items []*cmodel.MetaData) {
 	for _, item := range items {
-		pk := item.PK()
-		node, err := JudgeNodeRing.GetNode(pk)
+		pk := item.PK() // 根据Endpoint,Metric,Tags生成一致性哈希的键值
+		node, err := JudgeNodeRing.GetNode(pk) // 使用一致性哈希获取对应的node
 		if err != nil {
 			log.Println("E:", err)
 			continue
@@ -86,7 +88,7 @@ func Push2JudgeSendQueue(items []*cmodel.MetaData) {
 			Tags:      item.Tags,
 		}
 		Q := JudgeQueues[node]
-		isSuccess := Q.PushFront(judgeItem)
+		isSuccess := Q.PushFront(judgeItem) // 将item放入对应的Queue
 
 		// statistics
 		if !isSuccess {
@@ -100,23 +102,26 @@ func Push2GraphSendQueue(items []*cmodel.MetaData) {
 	cfg := g.Config().Graph
 
 	for _, item := range items {
-		graphItem, err := convert2GraphItem(item)
+		graphItem, err := convert2GraphItem(item) // 打到Graph的数据,要根据rrdtool的特定 来限制 step、counterType、timestamp
 		if err != nil {
 			log.Println("E:", err)
 			continue
 		}
-		pk := item.PK()
+		pk := item.PK() // 根据Endpoint,Metric,Tags生成一致性哈希的键值
 
 		// statistics. 为了效率,放到了这里,因此只有graph是enbale时才能trace
-		proc.RecvDataTrace.Trace(pk, item)
-		proc.RecvDataFilter.Filter(pk, item.Value, item)
+		proc.RecvDataTrace.Trace(pk, item) // 将item放入RecvDataTrace的list，用于统计、查询、debug
+		proc.RecvDataFilter.Filter(pk, item.Value, item) // 将item放入RecvDataFilter的list（只放满足条件的），用于统计、查询、debug
 
-		node, err := GraphNodeRing.GetNode(pk)
+		node, err := GraphNodeRing.GetNode(pk) // 使用一致性哈希获取对应的node
 		if err != nil {
 			log.Println("E:", err)
 			continue
 		}
 
+		/*
+		将item放入对应的Queue，如果每个node对应多个ip，item会被放入多个queue
+		 */
 		cnode := cfg.ClusterList[node]
 		errCnt := 0
 		for _, addr := range cnode.Addrs {
@@ -172,7 +177,7 @@ func convert2GraphItem(d *cmodel.MetaData) (*cmodel.GraphItem, error) {
 // 将原始数据入到tsdb发送缓存队列
 func Push2TsdbSendQueue(items []*cmodel.MetaData) {
 	for _, item := range items {
-		tsdbItem := convert2TsdbItem(item)
+		tsdbItem := convert2TsdbItem(item) // 转化为tsdb格式
 		isSuccess := TsdbQueue.PushFront(tsdbItem)
 
 		if !isSuccess {

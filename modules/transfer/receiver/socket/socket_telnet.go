@@ -12,7 +12,9 @@ import (
 	"strings"
 	"time"
 )
-
+/*
+使用telnet，按行读取item，转换成*cmodel.MetaData放入发送队列
+ */
 func socketTelnetHandle(conn net.Conn) {
 	defer conn.Close()
 
@@ -23,7 +25,7 @@ func socketTelnetHandle(conn net.Conn) {
 	timeout := time.Duration(cfg.Socket.Timeout) * time.Second
 
 	for {
-		conn.SetReadDeadline(time.Now().Add(timeout))
+		conn.SetReadDeadline(time.Now().Add(timeout)) // 设置超时时间
 		line, err := buf.ReadString('\n')
 		if err != nil {
 			break
@@ -50,7 +52,7 @@ func socketTelnetHandle(conn net.Conn) {
 			continue
 		}
 
-		item, err := convertLine2MetaData(t[1:])
+		item, err := convertLine2MetaData(t[1:]) // 将行表示的监控数据转换成*cmodel.MetaData
 		if err != nil {
 			continue
 		}
@@ -63,11 +65,11 @@ func socketTelnetHandle(conn net.Conn) {
 	proc.RecvCnt.IncrBy(int64(len(items)))
 
 	if cfg.Graph.Enabled {
-		sender.Push2GraphSendQueue(items)
+		sender.Push2GraphSendQueue(items) // 将数据 打入 某个Graph的发送缓存队列, 具体是哪一个Graph 由一致性哈希 决定
 	}
 
 	if cfg.Judge.Enabled {
-		sender.Push2JudgeSendQueue(items)
+		sender.Push2JudgeSendQueue(items) // 将数据 打入 某个Judge的发送缓存队列, 具体是哪一个Judge 由一致性哈希 决定
 	}
 
 	return

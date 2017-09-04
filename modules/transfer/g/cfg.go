@@ -104,6 +104,9 @@ func ParseConfig(cfg string) {
 		log.Fatalln("parse config file:", cfg, "fail:", err)
 	}
 
+	/*
+	转换cluster配置的格式，map["node"]="host1,host2" --> map["node"]=["host1", "host2"]
+	*/
 	// split cluster config
 	c.Judge.ClusterList = formatClusterItems(c.Judge.Cluster)
 	c.Graph.ClusterList = formatClusterItems(c.Graph.Cluster)
@@ -124,6 +127,60 @@ func NewClusterNode(addrs []string) *ClusterNode {
 	return &ClusterNode{addrs}
 }
 
+/*
+    "judge": {
+        "enabled": true,
+        "batch": 200,
+        "connTimeout": 1000,
+        "callTimeout": 5000,
+        "maxConns": 32,
+        "maxIdle": 32,
+        "replicas": 500,
+        "cluster": {
+            "judge-00" : "host0:port0",
+            "judge-01" : "host1:port1",
+            "judge-02" : "host2:port2",
+        }
+    },
+    "graph": {
+        "enabled": true,
+        "batch": 200,
+        "connTimeout": 1000,
+        "callTimeout": 5000,
+        "maxConns": 32,
+        "maxIdle": 32,
+        "replicas": 500,
+        "cluster": {
+            "graph-00" : "host0a:port0a, host0b:port0b",
+            "graph-01" : "host1a:port1a, host1b:port1b",
+            "graph-02" : "host2a:port2a, host2b:port2b",
+        }
+    }
+转换cluster配置的格式，map["node"]="host1,host2" --> map["node"]=["host1", "host2"]
+        "cluster": {
+            "judge-00" : "host0:port0",
+            "judge-01" : "host1:port1",
+            "judge-02" : "host2:port2",
+        }
+转换为
+        "cluster": {
+            "judge-00" : &ClusterNode{Addrs: ["host0:port0"],
+            "judge-01" : &ClusterNode{Addrs: ["host1:port1"],
+            "judge-02" : &ClusterNode{Addrs: ["host2:port2"],
+        }
+
+        "cluster": {
+            "graph-00" : "host0a:port0a, host0b:port0b",
+            "graph-01" : "host1a:port1a, host1b:port1b",
+            "graph-02" : "host2a:port2a, host2b:port2b",
+        }
+转换为
+        "cluster": {
+            "graph-00" : &ClusterNode{Addrs: ["host0a:port0a", "host0b:port0b"],
+            "graph-01" : &ClusterNode{Addrs: ["host1a:port1a", "host1b:port1b"],
+            "graph-02" : &ClusterNode{Addrs: ["host2a:port2a", "host2b:port2b"],
+        }
+ */
 // map["node"]="host1,host2" --> map["node"]=["host1", "host2"]
 func formatClusterItems(cluster map[string]string) map[string]*ClusterNode {
 	ret := make(map[string]*ClusterNode)

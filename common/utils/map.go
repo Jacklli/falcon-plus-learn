@@ -17,7 +17,9 @@ package utils
 import (
 	"sort"
 )
-
+/*
+将map的key放到slice，并排序
+ */
 // TODO 以下的部分, 考虑放到公共组件库
 func KeysOfMap(m map[string]string) []string {
 	keys := make(sort.StringSlice, len(m))

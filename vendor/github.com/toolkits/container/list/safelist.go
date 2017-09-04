@@ -41,7 +41,9 @@ func (this *SafeList) PopBack() interface{} {
 	this.Unlock()
 	return nil
 }
-
+/*
+一次取出最多max个item，以slice的方式返回
+ */
 func (this *SafeList) PopBackBy(max int) []interface{} {
 	this.Lock()
 
@@ -155,7 +157,9 @@ type SafeListLimited struct {
 	maxSize int
 	SL      *SafeList
 }
-
+/*
+返回&SafeListLimited{SL: &SafeList{L: list.New()}, maxSize: maxSize}
+ */
 func NewSafeListLimited(maxSize int) *SafeListLimited {
 	return &SafeListLimited{SL: NewSafeList(), maxSize: maxSize}
 }
@@ -165,7 +169,7 @@ func (this *SafeListLimited) PopBack() interface{} {
 }
 
 func (this *SafeListLimited) PopBackBy(max int) []interface{} {
-	return this.SL.PopBackBy(max)
+	return this.SL.PopBackBy(max) // 一次取出最多max个item，以slice的方式返回
 }
 
 func (this *SafeListLimited) PushFront(v interface{}) bool {
