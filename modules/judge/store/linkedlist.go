@@ -26,6 +26,9 @@ func (this *SafeLinkedList) ToSlice() []*model.JudgeItem {
 	return ret
 }
 
+/*
+返回endpoint/metric/SortedTags(tags)对应的链表的历史数据, vs[0] ~ vs[limit - 1]
+ */
 // @param limit 至多返回这些，如果不够，有多少返回多少
 // @return bool isEnough
 func (this *SafeLinkedList) HistoryData(limit int) ([]*model.HistoryData, bool) {
@@ -47,7 +50,7 @@ func (this *SafeLinkedList) HistoryData(limit int) ([]*model.HistoryData, bool) 
 	isEnough := true
 
 	judgeType := firstItem.JudgeType[0]
-	if judgeType == 'G' || judgeType == 'g' {
+	if judgeType == 'G' || judgeType == 'g' { // 取原始值
 		if size < limit {
 			// 有多少获取多少
 			limit = size
@@ -67,7 +70,7 @@ func (this *SafeLinkedList) HistoryData(limit int) ([]*model.HistoryData, bool) 
 			currentElement = nextElement
 		}
 	} else {
-		if size < limit+1 {
+		if size < limit+1 { // 取的是差值，取limit个差值，需要有limit+1个原始值
 			isEnough = false
 			limit = size - 1
 		}
@@ -98,6 +101,9 @@ func (this *SafeLinkedList) PushFront(v interface{}) *list.Element {
 	return this.L.PushFront(v)
 }
 
+/*
+将新的JudgeItem插入链表头部，插入前会判断时间戳的合法性，并删除旧的JudgeItem维护固定数量
+ */
 // @return needJudge 如果是false不需要做judge，因为新上来的数据不合法
 func (this *SafeLinkedList) PushFrontAndMaintain(v *model.JudgeItem, maxCount int) bool {
 	this.Lock()

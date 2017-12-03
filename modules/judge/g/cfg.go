@@ -54,12 +54,18 @@ var (
 	configLock = new(sync.RWMutex)
 )
 
+/*
+返回全局变量config     *GlobalConfig
+ */
 func Config() *GlobalConfig {
 	configLock.RLock()
 	defer configLock.RUnlock()
 	return config
 }
 
+/*
+加载配置文件到config *GlobalConfig
+ */
 func ParseConfig(cfg string) {
 	if cfg == "" {
 		log.Fatalln("use -c to specify configuration file")
@@ -69,7 +75,7 @@ func ParseConfig(cfg string) {
 		log.Fatalln("config file:", cfg, "is not existent")
 	}
 
-	ConfigFile = cfg
+	ConfigFile = cfg // 全局变量
 
 	configContent, err := file.ToTrimString(cfg)
 	if err != nil {
@@ -85,7 +91,7 @@ func ParseConfig(cfg string) {
 	configLock.Lock()
 	defer configLock.Unlock()
 
-	config = &c
+	config = &c // 全局变量
 
 	log.Println("read config file:", cfg, "successfully")
 }

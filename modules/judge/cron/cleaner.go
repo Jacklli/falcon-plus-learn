@@ -5,6 +5,9 @@ import (
 	"time"
 )
 
+/*
+周期性清理近7天没有新数据上报的key
+*/
 func CleanStale() {
 	for {
 		time.Sleep(time.Hour * 5)

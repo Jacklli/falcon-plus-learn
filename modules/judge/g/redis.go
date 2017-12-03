@@ -8,8 +8,11 @@ import (
 
 var RedisConnPool *redis.Pool
 
+/*
+初始化redis连接池
+ */
 func InitRedisConnPool() {
-	if !Config().Alarm.Enabled {
+	if !Config().Alarm.Enabled { // 判断是否开启alarm
 		return
 	}
 
@@ -21,6 +24,7 @@ func InitRedisConnPool() {
 	readTimeout := time.Duration(Config().Alarm.Redis.ReadTimeout) * time.Millisecond
 	writeTimeout := time.Duration(Config().Alarm.Redis.WriteTimeout) * time.Millisecond
 
+	// 创建redis连接池, 使用了https://godoc.org/github.com/garyburd/redigo/redis
 	RedisConnPool = &redis.Pool{
 		MaxIdle:     maxIdle,
 		IdleTimeout: idleTimeout,

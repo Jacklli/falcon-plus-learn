@@ -23,6 +23,9 @@ func (this *SingleConnRpcClient) close() {
 	}
 }
 
+/*
+建立到hbs的rpc链接
+ */
 func (this *SingleConnRpcClient) insureConn() {
 	if this.rpcClient != nil {
 		return
@@ -60,7 +63,7 @@ func (this *SingleConnRpcClient) Call(method string, args interface{}, reply int
 	this.Lock()
 	defer this.Unlock()
 
-	this.insureConn()
+	this.insureConn() // 建立到hbs的rpc链接
 
 	err := this.rpcClient.Call(method, args, reply)
 	if err != nil {

@@ -16,7 +16,7 @@ func Judge(L *SafeLinkedList, firstItem *model.JudgeItem, now int64) {
 func CheckStrategy(L *SafeLinkedList, firstItem *model.JudgeItem, now int64) {
 	key := fmt.Sprintf("%s/%s", firstItem.Endpoint, firstItem.Metric)
 	strategyMap := g.StrategyMap.Get()
-	strategies, exists := strategyMap[key]
+	strategies, exists := strategyMap[key] // 根据key:endpoint/metric，查询对应的strategy
 	if !exists {
 		return
 	}
@@ -26,7 +26,7 @@ func CheckStrategy(L *SafeLinkedList, firstItem *model.JudgeItem, now int64) {
 		// 比如lg-dinp-docker01.bj配置了两个proc.num的策略，一个name=docker，一个name=agent
 		// 所以此处要排除掉一部分
 		related := true
-		for tagKey, tagVal := range s.Tags {
+		for tagKey, tagVal := range s.Tags { // 根据tags，过滤掉不相关strategy
 			if myVal, exists := firstItem.Tags[tagKey]; !exists || myVal != tagVal {
 				related = false
 				break
@@ -37,12 +37,15 @@ func CheckStrategy(L *SafeLinkedList, firstItem *model.JudgeItem, now int64) {
 			continue
 		}
 
-		judgeItemWithStrategy(L, s, firstItem, now)
+		judgeItemWithStrategy(L, s, firstItem, now) // 根据策略信息判断是否报警
 	}
 }
 
+/*
+根据策略信息判断是否报警
+ */
 func judgeItemWithStrategy(L *SafeLinkedList, strategy model.Strategy, firstItem *model.JudgeItem, now int64) {
-	fn, err := ParseFuncFromString(strategy.Func, strategy.Operator, strategy.RightValue)
+	fn, err := ParseFuncFromString(strategy.Func, strategy.Operator, strategy.RightValue) // 返回judge函数
 	if err != nil {
 		log.Printf("[ERROR] parse func %s fail: %v. strategy id: %d", strategy.Func, err, strategy.Id)
 		return
@@ -62,9 +65,13 @@ func judgeItemWithStrategy(L *SafeLinkedList, strategy model.Strategy, firstItem
 		PushedTags: firstItem.Tags,
 	}
 
+	// 结合之前保存的event的信息和isTriggered，决定是否sendEvent(event)
 	sendEventIfNeed(historyData, isTriggered, now, event, strategy.MaxStep)
 }
 
+/*
+将event保存到LastEvents，如果之前存在则覆盖，同时写入redis，redis key是策略或表达式的优先级
+ */
 func sendEvent(event *model.Event) {
 	// update last event
 	g.LastEvents.Set(event.Id, event)
@@ -100,7 +107,7 @@ func CheckExpression(L *SafeLinkedList, firstItem *model.JudgeItem, now int64) {
 
 		related := filterRelatedExpressions(expressions, firstItem)
 		for _, exp := range related {
-			if _, ok := handledExpression[exp.Id]; ok {
+			if _, ok := handledExpression[exp.Id]; ok { // 因为ExpressionMap中key是metric/k=v，所以同一个expression会出现多次
 				continue
 			}
 			handledExpression[exp.Id] = struct{}{}
@@ -109,6 +116,9 @@ func CheckExpression(L *SafeLinkedList, firstItem *model.JudgeItem, now int64) {
 	}
 }
 
+/*
+构造[]string，返回tags
+ */
 func buildKeysFromMetricAndTags(item *model.JudgeItem) (keys []string) {
 	for k, v := range item.Tags {
 		keys = append(keys, fmt.Sprintf("%s/%s=%s", item.Metric, k, v))
@@ -117,6 +127,9 @@ func buildKeysFromMetricAndTags(item *model.JudgeItem) (keys []string) {
 	return
 }
 
+/*
+根据tags，过滤产生相关的expression
+ */
 func filterRelatedExpressions(expressions []*model.Expression, firstItem *model.JudgeItem) []*model.Expression {
 	size := len(expressions)
 	if size == 0 {
@@ -163,6 +176,9 @@ func copyItemTags(item *model.JudgeItem) map[string]string {
 	return ret
 }
 
+/*
+与judgeItemWithStrategy类似
+ */
 func judgeItemWithExpression(L *SafeLinkedList, expression *model.Expression, firstItem *model.JudgeItem, now int64) {
 	fn, err := ParseFuncFromString(expression.Func, expression.Operator, expression.RightValue)
 	if err != nil {
@@ -188,6 +204,9 @@ func judgeItemWithExpression(L *SafeLinkedList, expression *model.Expression, fi
 
 }
 
+/*
+结合之前保存的event的信息和isTriggered，决定是否sendEvent(event)
+ */
 func sendEventIfNeed(historyData []*model.HistoryData, isTriggered bool, now int64, event *model.Event, maxStep int) {
 	lastEvent, exists := g.LastEvents.Get(event.Id)
 	if isTriggered {
@@ -201,7 +220,7 @@ func sendEventIfNeed(historyData []*model.HistoryData, isTriggered bool, now int
 				return
 			}
 
-			sendEvent(event)
+			sendEvent(event) // 将event保存到LastEvents，如果之前存在则覆盖，同时写入redis，redis key是策略或表达式的优先级
 			return
 		}
 

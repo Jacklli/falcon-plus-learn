@@ -31,6 +31,9 @@ var (
 	LastEvents    = &SafeEventMap{M: make(map[string]*model.Event)}
 )
 
+/*
+初始化rpc客户端，用于连接hbs，这个时候还没有真正建立链接
+ */
 func InitHbsClient() {
 	HbsClient = &SingleConnRpcClient{
 		RpcServers: Config().Hbs.Servers,

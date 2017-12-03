@@ -19,8 +19,11 @@ type MaxFunction struct {
 	RightValue float64
 }
 
+/*
+根据HistoryBigMap中保存的历史数据，计算最大值，并与报警阈值进行比较
+ */
 func (this MaxFunction) Compute(L *SafeLinkedList) (vs []*model.HistoryData, leftValue float64, isTriggered bool, isEnough bool) {
-	vs, isEnough = L.HistoryData(this.Limit)
+	vs, isEnough = L.HistoryData(this.Limit) // 返回某个metric的历史数据
 	if !isEnough {
 		return
 	}
@@ -33,7 +36,7 @@ func (this MaxFunction) Compute(L *SafeLinkedList) (vs []*model.HistoryData, lef
 	}
 
 	leftValue = max
-	isTriggered = checkIsTriggered(leftValue, this.Operator, this.RightValue)
+	isTriggered = checkIsTriggered(leftValue, this.Operator, this.RightValue) // 使用计算出的左值、操作符、右值，判断是否触发报警阈值
 	return
 }
 
@@ -235,6 +238,9 @@ func (this PDiffFunction) Compute(L *SafeLinkedList) (vs []*model.HistoryData, l
 	return
 }
 
+/*
+"1,2,3" -> [1, 2, 3]
+ */
 func atois(s string) (ret []int, err error) {
 	a := strings.Split(s, ",")
 	ret = make([]int, len(a))
@@ -247,15 +253,24 @@ func atois(s string) (ret []int, err error) {
 	return
 }
 
+/*
+因为不同的函数，计算左值的方式不同，但是输入和输出是一样的。
+输入是存储历史metric的链表，输出是vs []*model.HistoryData, leftValue float64, isTriggered bool, isEnough bool
+所以这里把计算函数抽象成一个接口
+type Function interface {
+	Compute(L *SafeLinkedList) (vs []*model.HistoryData, leftValue float64, isTriggered bool, isEnough bool)
+}
+对于每个函数，定义相应的struct，分别实现各自的判断逻辑
+ */
 // @str: e.g. all(#3) sum(#3) avg(#10) diff(#10)
 func ParseFuncFromString(str string, operator string, rightValue float64) (fn Function, err error) {
 	idx := strings.Index(str, "#")
-	args, err := atois(str[idx+1 : len(str)-1])
+	args, err := atois(str[idx+1 : len(str)-1]) // 提取参数，fun(#args)
 	if err != nil {
 		return nil, err
 	}
 
-	switch str[:idx-1] {
+	switch str[:idx-1] { // 根据函数名
 	case "max":
 		fn = &MaxFunction{Limit: args[0], Operator: operator, RightValue: rightValue}
 	case "min":
@@ -279,6 +294,9 @@ func ParseFuncFromString(str string, operator string, rightValue float64) (fn Fu
 	return
 }
 
+/*
+使用计算出的左值和配置的操作符、右值，判断是否触发报警阈值
+ */
 func checkIsTriggered(leftValue float64, operator string, rightValue float64) (isTriggered bool) {
 	switch operator {
 	case "=", "==":
