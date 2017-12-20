@@ -44,17 +44,20 @@ func (this *UsersCache) Set(team string, users []*uic.User) {
 }
 
 func UsersOf(team string) []*uic.User {
-	users := CurlUic(team)
+	users := CurlUic(team) // 查询team对应的成员列表
 
 	if users != nil {
-		Users.Set(team, users)
+		Users.Set(team, users) // 保存到缓存
 	} else {
-		users = Users.Get(team)
+		users = Users.Get(team) // 尝试从缓存读
 	}
 
 	return users
 }
 
+/*
+查询team对应的成员列表，以map的形式返回，key：uic.User.Name; value: *uic.User
+ */
 func GetUsers(teams string) map[string]*uic.User {
 	userMap := make(map[string]*uic.User)
 	arr := strings.Split(teams, ",")
@@ -63,7 +66,7 @@ func GetUsers(teams string) map[string]*uic.User {
 			continue
 		}
 
-		users := UsersOf(team)
+		users := UsersOf(team) // 查询team对应的成员列表
 		if users == nil {
 			continue
 		}
@@ -75,17 +78,21 @@ func GetUsers(teams string) map[string]*uic.User {
 	return userMap
 }
 
+/*
+根据teams查询到成员列表
+将所有成员的phone、mail、im分别将入set，并返回phoneSet,mailSet,imSet
+ */
 // return phones, emails, IM
 func ParseTeams(teams string) ([]string, []string, []string) {
 	if teams == "" {
 		return []string{}, []string{}, []string{}
 	}
 
-	userMap := GetUsers(teams)
+	userMap := GetUsers(teams) // 查询team对应的成员列表，以map的形式返回
 	phoneSet := set.NewStringSet()
 	mailSet := set.NewStringSet()
 	imSet := set.NewStringSet()
-	for _, user := range userMap {
+	for _, user := range userMap { // 遍历userMap，构造phoneSet/mailSet/imSet
 		if user.Phone != "" {
 			phoneSet.Add(user.Phone)
 		}
@@ -99,6 +106,10 @@ func ParseTeams(teams string) ([]string, []string, []string) {
 	return phoneSet.ToSlice(), mailSet.ToSlice(), imSet.ToSlice()
 }
 
+/*
+GET ip:port/api/v1/team/name/<team>
+查询team对应的成员列表
+ */
 func CurlUic(team string) []*uic.User {
 	if team == "" {
 		return []*uic.User{}

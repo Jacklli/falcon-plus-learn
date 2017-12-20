@@ -58,6 +58,10 @@ func GetAction(id int) *Action {
 	return action
 }
 
+/*
+GET ip:port/api/v1/action/<id>
+获取actionid对应的action
+ */
 func CurlAction(id int) *Action {
 	if id <= 0 {
 		return nil

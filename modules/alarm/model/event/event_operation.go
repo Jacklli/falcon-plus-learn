@@ -14,6 +14,9 @@ import (
 
 const timeLayout = "2006-01-02 15:04:05"
 
+/*
+将event插入数据库表event
+ */
 func insertEvent(q orm.Ormer, eve *coommonModel.Event) (res sql.Result, err error) {
 	var status int
 	if status = 0; eve.Status == "OK" {
@@ -44,15 +47,20 @@ func insertEvent(q orm.Ormer, eve *coommonModel.Event) (res sql.Result, err erro
 	return
 }
 
+/*
+EventCases和Event的关系：Id相同的Event对应同一个EventCase
+根据Event，插入或更新EventCases表，然后将Event插入Event表
+ */
 func InsertEvent(eve *coommonModel.Event) {
 	q := orm.NewOrm()
 	var event []EventCases
-	q.Raw("select * from event_cases where id = ?", eve.Id).QueryRows(&event)
+	q.Raw("select * from event_cases where id = ?", eve.Id).QueryRows(&event) // 查询该event对应的event_cases
 	var sqlLog sql.Result
 	var errRes error
 	log.Debugf("events: %v", eve)
 	log.Debugf("expression is null: %v", eve.Expression == nil)
 	if len(event) == 0 {
+		// 该Event没有对应的EventCase，插入新的EventCase
 		//create cases
 		sqltemplete := `INSERT INTO event_cases (
 					id,
@@ -81,7 +89,7 @@ func InsertEvent(eve *coommonModel.Event) {
 			sqltemplete,
 			eve.Id,
 			eve.Endpoint,
-			counterGen(eve.Metric(), utils.SortedTags(eve.PushedTags)),
+			counterGen(eve.Metric(), utils.SortedTags(eve.PushedTags)), // 返回metric[/tags]
 			eve.Func(),
 			//cond
 			fmt.Sprintf("%v %v %v", eve.LeftValue, eve.Operator(), eve.RightValue()),
@@ -101,6 +109,7 @@ func InsertEvent(eve *coommonModel.Event) {
 			eve.TplId()).Exec()
 
 	} else {
+		// 该Event存在对应的EventCase，更新当前EventCase
 		sqltemplete := `UPDATE event_cases SET
 				update_at = ?,
 				max_step = ?,
@@ -124,6 +133,7 @@ func InsertEvent(eve *coommonModel.Event) {
 			tpl_creator = eve.Tpl().Creator
 		}
 		if eve.CurrentStep == 1 {
+			// 第一次更新开始时间
 			//update start time of cases
 			sqltemplete = fmt.Sprintf("%v ,timestamp = ? WHERE id = ?", sqltemplete)
 			sqlLog, errRes = q.Raw(
@@ -165,7 +175,7 @@ func InsertEvent(eve *coommonModel.Event) {
 	}
 	log.Debug(fmt.Sprintf("%v, %v", sqlLog, errRes))
 	//insert case
-	insertEvent(q, eve)
+	insertEvent(q, eve) // 将event插入数据库表event
 }
 
 func counterGen(metric string, tags string) (mycounter string) {
@@ -176,6 +186,9 @@ func counterGen(metric string, tags string) (mycounter string) {
 	return
 }
 
+/*
+删除events表的旧数据
+ */
 func DeleteEventOlder(before time.Time, limit int) {
 	t := before.Format(timeLayout)
 	sqlTpl := `delete from events where timestamp<? limit ?`

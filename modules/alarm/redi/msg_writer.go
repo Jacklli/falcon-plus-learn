@@ -18,6 +18,9 @@ func lpush(queue, message string) {
 	}
 }
 
+/*
+把*model.Sms放到redis的/sms队列
+ */
 func WriteSmsModel(sms *model.Sms) {
 	if sms == nil {
 		return
@@ -69,7 +72,7 @@ func WriteSms(tos []string, content string) {
 	}
 
 	sms := &model.Sms{Tos: strings.Join(tos, ","), Content: content}
-	WriteSmsModel(sms)
+	WriteSmsModel(sms)  // 把*model.Sms放到redis的/sms队列
 }
 
 func WriteIM(tos []string, content string) {

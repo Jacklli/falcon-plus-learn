@@ -14,7 +14,7 @@ func CleanExpiredEvent() {
 
 		now := time.Now()
 		before := now.Add(time.Duration(-retention_days*24) * time.Hour)
-		eventmodel.DeleteEventOlder(before, delete_batch)
+		eventmodel.DeleteEventOlder(before, delete_batch) // 删除events表的旧数据
 
 		time.Sleep(time.Second * 60)
 	}

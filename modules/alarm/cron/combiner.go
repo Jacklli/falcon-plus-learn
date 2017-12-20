@@ -16,7 +16,7 @@ func CombineSms() {
 	for {
 		// 每分钟读取处理一次
 		time.Sleep(time.Minute)
-		combineSms()
+		combineSms() // 读取/queue/user/sms队列中的短信内容，聚合后入库，并发送聚合短信
 	}
 }
 
@@ -36,13 +36,17 @@ func CombineIM() {
 	}
 }
 
+/*
+读取/queue/user/mail队列中的邮件内容，聚合发送
+ */
 func combineMail() {
-	dtos := popAllMailDto()
+	dtos := popAllMailDto() // 循环读取/queue/user/mail队列中的邮件内容，直到空或出错，以[]*MailDto的形式返回
 	count := len(dtos)
 	if count == 0 {
 		return
 	}
 
+	// 邮件聚合，（Priority,Status,Email,Metric）相同的放到一起
 	dtoMap := make(map[string][]*MailDto)
 	for i := 0; i < count; i++ {
 		key := fmt.Sprintf("%d%s%s%s", dtos[i].Priority, dtos[i].Status, dtos[i].Email, dtos[i].Metric)
@@ -61,6 +65,7 @@ func combineMail() {
 			continue
 		}
 
+		// 构造聚合的主题和正文
 		subject := fmt.Sprintf("[P%d][%s] %d %s", arr[0].Priority, arr[0].Status, size, arr[0].Metric)
 		contentArr := make([]string, size)
 		for i := 0; i < size; i++ {
@@ -73,13 +78,17 @@ func combineMail() {
 	}
 }
 
+/*
+读取/queue/user/im队列中的IM内容，聚合后入库，并发送聚合消息
+ */
 func combineIM() {
-	dtos := popAllImDto()
+	dtos := popAllImDto() // 循环读取/queue/user/im队列中的短信内容，直到空或出错，以[]*ImDto的形式返回
 	count := len(dtos)
 	if count == 0 {
 		return
 	}
 
+	// 聚合消息，（Priority,Status,IM,Metric）相同的放到一起
 	dtoMap := make(map[string][]*ImDto)
 	for i := 0; i < count; i++ {
 		key := fmt.Sprintf("%d%s%s%s", dtos[i].Priority, dtos[i].Status, dtos[i].IM, dtos[i].Metric)
@@ -126,13 +135,17 @@ func combineIM() {
 	}
 }
 
+/*
+读取/queue/user/sms队列中的短信内容，聚合后入库，并发送聚合短信
+ */
 func combineSms() {
-	dtos := popAllSmsDto()
+	dtos := popAllSmsDto() // 循环读取/queue/user/sms队列中的短信内容，直到空或出错。以[]*SmsDto的形式返回
 	count := len(dtos)
 	if count == 0 {
 		return
 	}
 
+	// 短信聚合，（Priority,Status,Phone,Metric）相同的放到一起
 	dtoMap := make(map[string][]*SmsDto)
 	for i := 0; i < count; i++ {
 		key := fmt.Sprintf("%d%s%s%s", dtos[i].Priority, dtos[i].Status, dtos[i].Phone, dtos[i].Metric)
@@ -146,26 +159,29 @@ func combineSms() {
 	for _, arr := range dtoMap {
 		size := len(arr)
 		if size == 1 {
+			// 只有一条，直接发送
 			redi.WriteSms([]string{arr[0].Phone}, arr[0].Content)
 			continue
 		}
 
-		// 把多个sms内容写入数据库，只给用户提供一个链接
+		// 把多个sms内容聚合后写入数据库，只给用户提供一个链接
 		contentArr := make([]string, size)
 		for i := 0; i < size; i++ {
 			contentArr[i] = arr[i].Content
 		}
-		content := strings.Join(contentArr, ",,")
+		content := strings.Join(contentArr, ",,") // 以",,"分割的多个短信内容
 
+		// 提取endpoint
 		first := arr[0].Content
-		t := strings.Split(first, "][")
+		t := strings.Split(first, "][") // 单条短信格式：[P%d][%s][%s][][%s %s %s %s %s%s%s][O%d %s]
 		eg := ""
 		if len(t) >= 3 {
 			eg = t[2]
 		}
 
-		path, err := api.LinkToSMS(content)
+		path, err := api.LinkToSMS(content) // 调用POST ip:port/portal/links/store，将聚合的短信内容存入数据库，并返回链接地址
 		sms := ""
+		// 构造聚合短信内容
 		if err != nil || path == "" {
 			sms = fmt.Sprintf("[P%d][%s] %d %s.  e.g. %s. detail in email", arr[0].Priority, arr[0].Status, size, arr[0].Metric, eg)
 			log.Error("get short link fail", err)
@@ -175,19 +191,23 @@ func combineSms() {
 			log.Debugf("combined sms is:%s", sms)
 		}
 
-		redi.WriteSms([]string{arr[0].Phone}, sms)
+		redi.WriteSms([]string{arr[0].Phone}, sms) // 放入redis待发送队列
 	}
 }
 
+/*
+循环读取/queue/user/sms队列中的短信内容，直到空或出错
+以[]*SmsDto的形式返回
+ */
 func popAllSmsDto() []*SmsDto {
 	ret := []*SmsDto{}
-	queue := g.Config().Redis.UserSmsQueue
+	queue := g.Config().Redis.UserSmsQueue // "userSmsQueue": "/queue/user/sms"
 
 	rc := g.RedisConnPool.Get()
 	defer rc.Close()
 
 	for {
-		reply, err := redis.String(rc.Do("RPOP", queue))
+		reply, err := redis.String(rc.Do("RPOP", queue)) // RPOP Removes and returns the last element of the list stored at key.
 		if err != nil {
 			if err != redis.ErrNil {
 				log.Error("get SmsDto fail", err)
@@ -214,7 +234,7 @@ func popAllSmsDto() []*SmsDto {
 
 func popAllMailDto() []*MailDto {
 	ret := []*MailDto{}
-	queue := g.Config().Redis.UserMailQueue
+	queue := g.Config().Redis.UserMailQueue // "userMailQueue": "/queue/user/mail"
 
 	rc := g.RedisConnPool.Get()
 	defer rc.Close()
@@ -247,7 +267,7 @@ func popAllMailDto() []*MailDto {
 
 func popAllImDto() []*ImDto {
 	ret := []*ImDto{}
-	queue := g.Config().Redis.UserIMQueue
+	queue := g.Config().Redis.UserIMQueue // "userIMQueue": "/queue/user/im"
 
 	rc := g.RedisConnPool.Get()
 	defer rc.Close()

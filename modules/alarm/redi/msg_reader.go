@@ -47,6 +47,9 @@ func PopAllSms() []*model.Sms {
 	return ret
 }
 
+/*
+循环读取/im队列中的内容，直到空或出错，以[]*model.IM的形式返回
+ */
 func PopAllIM() []*model.IM {
 	ret := []*model.IM{}
 	queue := IM_QUEUE_NAME

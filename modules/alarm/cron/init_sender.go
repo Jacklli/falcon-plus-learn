@@ -10,6 +10,9 @@ var (
 	MailWorkerChan chan int
 )
 
+/*
+创建IMWorkerChan/SmsWorkerChan/MailWorkerChan，根据配置设置channel长度
+ */
 func InitSenderWorker() {
 	workerConfig := g.Config().Worker
 	IMWorkerChan = make(chan int, workerConfig.IM)

@@ -83,7 +83,7 @@ func sendEvent(event *model.Event) {
 	}
 
 	// send to redis
-	redisKey := fmt.Sprintf(g.Config().Alarm.QueuePattern, event.Priority())
+	redisKey := fmt.Sprintf(g.Config().Alarm.QueuePattern, event.Priority()) // 使用优先级对应到redis中的不同队列
 	rc := g.RedisConnPool.Get()
 	defer rc.Close()
 	rc.Do("LPUSH", redisKey, string(bs))

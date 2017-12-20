@@ -6,6 +6,9 @@ import (
 	"log"
 )
 
+/*
+启动http服务（使用gin框架实现），提供版本查询、健康查询、工作查询接口
+ */
 func Start() {
 	if !g.Config().Http.Enabled {
 		return
