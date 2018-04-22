@@ -19,26 +19,29 @@ import (
 
 type Graph int
 
+/*
+返回key对应的rrd文件内容
+ */
 func (this *Graph) GetRrd(key string, rrdfile *g.File) (err error) {
-	if md5, dsType, step, err := g.SplitRrdCacheKey(key); err != nil {
+	if md5, dsType, step, err := g.SplitRrdCacheKey(key); err != nil { // split key提取md5, dsType, step
 		return err
 	} else {
-		rrdfile.Filename = g.RrdFileName(g.Config().RRD.Storage, md5, dsType, step)
+		rrdfile.Filename = g.RrdFileName(g.Config().RRD.Storage, md5, dsType, step) // 构造rrd文件名
 	}
 
-	items := store.GraphItems.PopAll(key)
+	items := store.GraphItems.PopAll(key)  // 以[]*cmodel.GraphItem的形式，返回key对应的SafeLinkedList所有的元素，旧的数据在前
 	if len(items) > 0 {
-		rrdtool.FlushFile(rrdfile.Filename, items)
+		rrdtool.FlushFile(rrdfile.Filename, items) // 先将缓存中的item刷新到rrd
 	}
 
-	rrdfile.Body, err = rrdtool.ReadFile(rrdfile.Filename)
+	rrdfile.Body, err = rrdtool.ReadFile(rrdfile.Filename) // 读取rrd文件内容，并返回
 	return
 }
-
+// 连接测试
 func (this *Graph) Ping(req cmodel.NullRpcRequest, resp *cmodel.SimpleRpcResponse) error {
 	return nil
 }
-
+// 将items添加到GraphItems，并更新index和historycache
 func (this *Graph) Send(items []*cmodel.GraphItem, resp *cmodel.SimpleRpcResponse) error {
 	go handleItems(items)
 	return nil
@@ -49,7 +52,7 @@ func HandleItems(items []*cmodel.GraphItem) error {
 	handleItems(items)
 	return nil
 }
-
+// 将items添加到GraphItems，并更新index和historycache
 func handleItems(items []*cmodel.GraphItem) {
 	if items == nil {
 		return
@@ -68,7 +71,7 @@ func handleItems(items []*cmodel.GraphItem) {
 		}
 
 		endpoint := items[i].Endpoint
-		if !g.IsValidString(endpoint) {
+		if !g.IsValidString(endpoint) {  // 判断是否为有效字符串(不包含指定字符和多字节字符)
 			if cfg.Debug {
 				log.Printf("invalid endpoint: %s", endpoint)
 			}
@@ -76,7 +79,7 @@ func handleItems(items []*cmodel.GraphItem) {
 			continue
 		}
 
-		counter := cutils.Counter(items[i].Metric, items[i].Tags)
+		counter := cutils.Counter(items[i].Metric, items[i].Tags)  // 返回metric/SortedTags(tags)
 		if !g.IsValidString(counter) {
 			if cfg.Debug {
 				log.Printf("invalid counter: %s/%s", endpoint, counter)
@@ -87,27 +90,27 @@ func handleItems(items []*cmodel.GraphItem) {
 
 		dsType := items[i].DsType
 		step := items[i].Step
-		checksum := items[i].Checksum()
-		key := g.FormRrdCacheKey(checksum, dsType, step)
+		checksum := items[i].Checksum() // 计算md5，Md5(endpoint/metric/SortedTags(tags))
+		key := g.FormRrdCacheKey(checksum, dsType, step)  // 生成rrd缓存数据的key：checksum_dsType_step
 
 		//statistics
 		proc.GraphRpcRecvCnt.Incr()
 
 		// To Graph
-		first := store.GraphItems.First(key)
-		if first != nil && items[i].Timestamp <= first.Timestamp {
+		first := store.GraphItems.First(key) // 返回key的第一个GraphItem，即最新的item
+		if first != nil && items[i].Timestamp <= first.Timestamp { // 忽略旧的item
 			continue
 		}
-		store.GraphItems.PushFront(key, items[i], checksum, cfg)
+		store.GraphItems.PushFront(key, items[i], checksum, cfg) // 将item插入缓存头部
 
 		// To Index
-		index.ReceiveItem(items[i], checksum)
+		index.ReceiveItem(items[i], checksum) // 更新IndexedItemCache、unIndexedItemCache
 
 		// To History
-		store.AddItem(checksum, items[i])
+		store.AddItem(checksum, items[i]) // 更新HistoryCache
 	}
 }
-
+// 查询rrd数据
 func (this *Graph) Query(param cmodel.GraphQueryParam, resp *cmodel.GraphQueryResponse) error {
 	var (
 		datas      []*cmodel.RRDData
@@ -123,14 +126,14 @@ func (this *Graph) Query(param cmodel.GraphQueryParam, resp *cmodel.GraphQueryRe
 	resp.Values = []*cmodel.RRDData{}
 	resp.Endpoint = param.Endpoint
 	resp.Counter = param.Counter
-	dsType, step, exists := index.GetTypeAndStep(param.Endpoint, param.Counter) // complete dsType and step
+	dsType, step, exists := index.GetTypeAndStep(param.Endpoint, param.Counter) // complete dsType and step，根据endpoint和counter获取dsType和step
 	if !exists {
 		return nil
 	}
 	resp.DsType = dsType
 	resp.Step = step
 
-	start_ts := param.Start - param.Start%int64(step)
+	start_ts := param.Start - param.Start%int64(step) // 按step对齐
 	end_ts := param.End - param.End%int64(step) + int64(step)
 	if end_ts-start_ts-int64(step) < 1 {
 		return nil
@@ -141,10 +144,10 @@ func (this *Graph) Query(param cmodel.GraphQueryParam, resp *cmodel.GraphQueryRe
 	filename := g.RrdFileName(cfg.RRD.Storage, md5, dsType, step)
 
 	// read cached items
-	items, flag := store.GraphItems.FetchAll(key)
+	items, flag := store.GraphItems.FetchAll(key) // 以[]*cmodel.GraphItem的形式，返回key对应的SafeLinkedList所有的元素，旧的数据在前
 	items_size := len(items)
 
-	if cfg.Migrate.Enabled && flag&g.GRAPH_F_MISS != 0 {
+	if cfg.Migrate.Enabled && flag&g.GRAPH_F_MISS != 0 { // 需要从扩容前的节点远程查询
 		node, _ := rrdtool.Consistent.Get(param.Endpoint + "/" + param.Counter)
 		done := make(chan error, 1)
 		res := &cmodel.GraphAccurateQueryResponse{}
@@ -158,7 +161,7 @@ func (this *Graph) Query(param cmodel.GraphQueryParam, resp *cmodel.GraphQueryRe
 		// fetch data from remote
 		datas = res.Values
 		datas_size = len(datas)
-	} else {
+	} else {  // 读取本地rrd文件
 		// read data from rrd file
 		// 从RRD中获取数据不包含起始时间点
 		// 例: start_ts=1484651400,step=60,则第一个数据时间为1484651460)

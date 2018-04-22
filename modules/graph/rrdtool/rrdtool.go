@@ -38,20 +38,31 @@ type readfile_t struct {
 	filename string
 	data     []byte
 }
-
+// 开启net_task_worker goroutine监听net_task任务管道用于同其他graph传输监控数据
+// 开启ioworker goroutine监听io_task任务管道用于读写本地rrd文件
+// 开启syncdisk goroutine用于周期性刷新GraphItems缓存到rrd文件
 func Start() {
-	cfg := g.Config()
+	cfg := g.Config() // 返回配置信息
 	var err error
 	// check data dir
-	if err = file.EnsureDirRW(cfg.RRD.Storage); err != nil {
+	/*
+    "rrd": {
+        "storage": "./data/6070" // 历史数据的文件存储路径（如有必要，请修改为合适的路）
+    },
+	 */
+	if err = file.EnsureDirRW(cfg.RRD.Storage); err != nil {  // 确保存储路径存在且可读写
 		log.Fatalln("rrdtool.Start error, bad data dir "+cfg.RRD.Storage+",", err)
 	}
 
+	/*
+	将扩容前的graph节点加入一致性hash，并针对每个graph节点创建任务管道Net_task_ch[node]和rpc连接clients[node]
+	开启cfg.Migrate.Concurrency个net_task_worker，用于和扩容前的graph传输监控数据
+	*/
 	migrate_start(cfg)
 
 	// sync disk
-	go syncDisk()
-	go ioWorker()
+	go syncDisk()  // 使用异步方式周期性刷新GraphItems缓存到文件
+	go ioWorker()  // 从io_task_chan读取task进行处理，如flushrrd
 	log.Println("rrdtool.Start ok")
 }
 
@@ -64,6 +75,9 @@ const (
 	RRA720PointCnt = 730 // 12h一个点存1year
 )
 
+/*
+创建rrd文件，设置rrd属性
+ */
 func create(filename string, item *cmodel.GraphItem) error {
 	now := time.Now()
 	start := now.Add(time.Duration(-24) * time.Hour)
@@ -133,15 +147,20 @@ func flushrrd(filename string, items []*cmodel.GraphItem) error {
 			return err
 		}
 
-		err = create(filename, items[0])
+		err = create(filename, items[0]) // 创建rrd文件，设置rrd属性
 		if err != nil {
 			return err
 		}
 	}
 
-	return update(filename, items)
+	return update(filename, items) // 更新rrd文件
 }
 
+/*
+发送IO_TASK_M_READ(包括参数)指令到管道io_task_chan，供ioWorker处理
+并通过done等待操作完成
+返回rrd文件内容
+ */
 func ReadFile(filename string) ([]byte, error) {
 	done := make(chan error, 1)
 	task := &io_task_t{
@@ -155,8 +174,13 @@ func ReadFile(filename string) ([]byte, error) {
 	return task.args.(*readfile_t).data, err
 }
 
+/*
+发送IO_TASK_M_FLUSH(包括参数)指令到管道io_task_chan，供ioWorker处理
+并通过done等待操作完成
+刷新rrd文件
+ */
 func FlushFile(filename string, items []*cmodel.GraphItem) error {
-	done := make(chan error, 1)
+	done := make(chan error, 1)  // 接收处理结果的channel
 	io_task_chan <- &io_task_t{
 		method: IO_TASK_M_FLUSH,
 		args: &flushfile_t{
@@ -165,7 +189,7 @@ func FlushFile(filename string, items []*cmodel.GraphItem) error {
 		},
 		done: done,
 	}
-	atomic.AddUint64(&disk_counter, 1)
+	atomic.AddUint64(&disk_counter, 1)  // 统计信息
 	return <-done
 }
 
@@ -186,7 +210,7 @@ func Fetch(filename string, cf string, start, end int64, step int) ([]*cmodel.RR
 	err := <-done
 	return task.args.(*fetch_t).data, err
 }
-
+// 查询rrd文件
 func fetch(filename string, cf string, start, end int64, step int) ([]*cmodel.RRDData, error) {
 	start_t := time.Unix(start, 0)
 	end_t := time.Unix(end, 0)
@@ -230,19 +254,22 @@ func FlushAll(force bool) {
 	log.Printf("flush hash done (disk:%08d net:%08d)\n", disk_counter, net_counter)
 }
 
+/*
+将key对应的GraphItems flush到rrd文件
+ */
 func CommitByKey(key string) {
 
-	md5, dsType, step, err := g.SplitRrdCacheKey(key)
+	md5, dsType, step, err := g.SplitRrdCacheKey(key) // split key提取md5, dsType, step
 	if err != nil {
 		return
 	}
-	filename := g.RrdFileName(g.Config().RRD.Storage, md5, dsType, step)
+	filename := g.RrdFileName(g.Config().RRD.Storage, md5, dsType, step) // 使用md5, dsType, step构造rrd文件名
 
-	items := store.GraphItems.PopAll(key)
+	items := store.GraphItems.PopAll(key) // 以[]*cmodel.GraphItem的形式，返回key对应的SafeLinkedList所有的元素，旧的数据在前
 	if len(items) == 0 {
 		return
 	}
-	FlushFile(filename, items)
+	FlushFile(filename, items) // 发送IO_TASK_M_FLUSH(包括参数)指令到管道io_task_chan，供ioWorker处理
 }
 
 func PullByKey(key string) {
@@ -274,39 +301,45 @@ func PullByKey(key string) {
 	}()
 }
 
+/*
+将下标为idx的map中的GraphItem刷新到文件
+ */
 func FlushRRD(idx int, force bool) {
 	begin := time.Now()
 	atomic.StoreInt32(&flushrrd_timeout, 0)
 
-	keys := store.GraphItems.KeysByIndex(idx)
+	keys := store.GraphItems.KeysByIndex(idx) // 以slice形式返回map store.GraphItems.A[idx]的key
 	if len(keys) == 0 {
 		return
 	}
 
 	for _, key := range keys {
-		flag, _ := store.GraphItems.GetFlag(key)
+		flag, _ := store.GraphItems.GetFlag(key) // 获取key对应的SafeLinkedList的状态
 
 		//write err data to local filename
-		if force == false && g.Config().Migrate.Enabled && flag&g.GRAPH_F_MISS != 0 {
+		if force == false && g.Config().Migrate.Enabled && flag&g.GRAPH_F_MISS != 0 { // 从扩容前的graph节点将rrd文件拷贝到本地
 			if time.Since(begin) > time.Millisecond*g.FLUSH_DISK_STEP {
 				atomic.StoreInt32(&flushrrd_timeout, 1)
 			}
 			PullByKey(key)
-		} else if force || shouldFlush(key) {
-			CommitByKey(key)
+		} else if force || shouldFlush(key) {  // 判断是否达到flush阈值，1、根据数量；2、根据时间间隔
+			CommitByKey(key) // 将key对应的GraphItems flush到rrd文件
 		}
 	}
 }
 
+/*
+判断是否达到flush阈值，1、根据数量；2、根据时间间隔
+ */
 func shouldFlush(key string) bool {
 
-	if store.GraphItems.ItemCnt(key) >= g.FLUSH_MIN_COUNT {
+	if store.GraphItems.ItemCnt(key) >= g.FLUSH_MIN_COUNT { // 计算key对应的SafeLinkedList的长度是否>=FLUSH_MIN_COUNT
 		return true
 	}
 
 	deadline := time.Now().Unix() - int64(g.FLUSH_MAX_WAIT)
-	back := store.GraphItems.Back(key)
-	if back != nil && back.Timestamp <= deadline {
+	back := store.GraphItems.Back(key)  // 查询最旧的item
+	if back != nil && back.Timestamp <= deadline { // 计算时长是否超过FLUSH_MAX_WAIT没有flush过
 		return true
 	}
 

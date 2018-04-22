@@ -60,7 +60,7 @@ func init() {
 	Net_task_ch = make(map[string]chan *Net_task_t)
 	clients = make(map[string][]*rpc.Client)
 }
-
+// 返回统计信息
 func GetCounter() (ret string) {
 	return fmt.Sprintf("FETCH_S_SUCCESS[%d] FETCH_S_ERR[%d] FETCH_S_ISNOTEXIST[%d] SEND_S_SUCCESS[%d] SEND_S_ERR[%d] QUERY_S_SUCCESS[%d] QUERY_S_ERR[%d] CONN_S_ERR[%d] CONN_S_DIAL[%d]",
 		atomic.LoadUint64(&stat_cnt[FETCH_S_SUCCESS]),
@@ -88,21 +88,24 @@ func dial(address string, timeout time.Duration) (*rpc.Client, error) {
 	}
 	return rpc.NewClient(conn), err
 }
-
+/*
+将扩容前的graph节点加入一致性hash，并针对每个graph节点创建任务管道Net_task_ch[node]和rpc连接clients[node]
+开启cfg.Migrate.Concurrency个net_task_worker，用于和扩容前的graph传输监控数据
+ */
 func migrate_start(cfg *g.GlobalConfig) {
 	var err error
 	var i int
 	if cfg.Migrate.Enabled {
-		Consistent.NumberOfReplicas = cfg.Migrate.Replicas
+		Consistent.NumberOfReplicas = cfg.Migrate.Replicas // 这是一致性hash算法需要的节点副本数量，建议不要变更，保持默认即可（必须和transfer的配置中保持一致）
 
-		nodes := cutils.KeysOfMap(cfg.Migrate.Cluster)
-		for _, node := range nodes {
-			addr := cfg.Migrate.Cluster[node]
-			Consistent.Add(node)
+		nodes := cutils.KeysOfMap(cfg.Migrate.Cluster)  // 将map的key放到slice，并排序
+		for _, node := range nodes { // 未扩容前老的graph实例列表
+			addr := cfg.Migrate.Cluster[node] // node对应的地址
+			Consistent.Add(node) // 加入一致性hash
 			Net_task_ch[node] = make(chan *Net_task_t, 16)
 			clients[node] = make([]*rpc.Client, cfg.Migrate.Concurrency)
 
-			for i = 0; i < cfg.Migrate.Concurrency; i++ {
+			for i = 0; i < cfg.Migrate.Concurrency; i++ {  // 创建rpc连接，每个node有cfg.Migrate.Concurrency个
 				if clients[node][i], err = dial(addr, time.Second); err != nil {
 					log.Fatalf("node:%s addr:%s err:%s\n", node, addr, err)
 				}
@@ -111,14 +114,14 @@ func migrate_start(cfg *g.GlobalConfig) {
 		}
 	}
 }
-
+// 从任务管道Net_task_ch[node]读取任务并处理
 func net_task_worker(idx int, ch chan *Net_task_t, client **rpc.Client, addr string) {
 	var err error
 	for {
 		select {
 		case task := <-ch:
 			if task.Method == NET_TASK_M_SEND {
-				if err = send_data(client, task.Key, addr); err != nil {
+				if err = send_data(client, task.Key, addr); err != nil { // 将key对应的GraphItems发送到addr对应的graph
 					pfc.Meter("migrate.send.err", 1)
 					atomic.AddUint64(&stat_cnt[SEND_S_ERR], 1)
 				} else {
@@ -126,7 +129,7 @@ func net_task_worker(idx int, ch chan *Net_task_t, client **rpc.Client, addr str
 					atomic.AddUint64(&stat_cnt[SEND_S_SUCCESS], 1)
 				}
 			} else if task.Method == NET_TASK_M_QUERY {
-				if err = query_data(client, addr, task.Args, task.Reply); err != nil {
+				if err = query_data(client, addr, task.Args, task.Reply); err != nil { // 远程查询addr上的监控数据
 					pfc.Meter("migrate.query.err", 1)
 					atomic.AddUint64(&stat_cnt[QUERY_S_ERR], 1)
 				} else {
@@ -144,7 +147,7 @@ func net_task_worker(idx int, ch chan *Net_task_t, client **rpc.Client, addr str
 						atomic.AddUint64(&stat_cnt[SEND_S_SUCCESS], 1)
 					}
 				} else {
-					if err = fetch_rrd(client, task.Key, addr); err != nil {
+					if err = fetch_rrd(client, task.Key, addr); err != nil { // 从任务管道Net_task_ch[node]读取任务并处理
 						if os.IsNotExist(err) {
 							pfc.Meter("migrate.scprrd.null", 1)
 							//文件不存在时，直接将缓存数据刷入本地
@@ -192,7 +195,7 @@ func reconnection(client **rpc.Client, addr string) {
 		atomic.AddUint64(&stat_cnt[CONN_S_DIAL], 1)
 	}
 }
-
+// 远程查询addr上的监控数据
 func query_data(client **rpc.Client, addr string,
 	args interface{}, resp interface{}) error {
 	var (
@@ -213,7 +216,7 @@ func query_data(client **rpc.Client, addr string,
 	}
 	return err
 }
-
+// 将key对应的GraphItems发送到addr对应的graph
 func send_data(client **rpc.Client, key string, addr string) error {
 	var (
 		err  error
@@ -228,9 +231,9 @@ func send_data(client **rpc.Client, key string, addr string) error {
 	}
 	cfg := g.Config()
 
-	store.GraphItems.SetFlag(key, flag|g.GRAPH_F_SENDING)
+	store.GraphItems.SetFlag(key, flag|g.GRAPH_F_SENDING) // 设置标志位g.GRAPH_F_SENDING
 
-	items := store.GraphItems.PopAll(key)
+	items := store.GraphItems.PopAll(key) // 以[]*cmodel.GraphItem的形式，返回key对应的SafeLinkedList所有的元素，旧的数据在前
 	items_size := len(items)
 	if items_size == 0 {
 		goto out
@@ -245,19 +248,19 @@ func send_data(client **rpc.Client, key string, addr string) error {
 			goto out
 		}
 		if err == rpc.ErrShutdown {
-			reconnection(client, addr)
+			reconnection(client, addr) // rpc重连
 		}
 	}
 	// err
-	store.GraphItems.PushAll(key, items)
+	store.GraphItems.PushAll(key, items) // 将items加入GraphItems，新数据再链表头部，之所以先popall再pushall，是为了构造[]*cmodel.GraphItem同时进行排序
 	//flag |= g.GRAPH_F_ERR
 out:
 	flag &= ^g.GRAPH_F_SENDING
-	store.GraphItems.SetFlag(key, flag)
+	store.GraphItems.SetFlag(key, flag) // 取消标志位g.GRAPH_F_SENDING
 	return err
 
 }
-
+// 使用Graph.GetRrd从扩容前的graph节点将rrd文件拷贝到本地
 func fetch_rrd(client **rpc.Client, key string, addr string) error {
 	var (
 		err      error

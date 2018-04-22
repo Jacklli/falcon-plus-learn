@@ -41,6 +41,8 @@ func InitCache() {
 	go startCacheProcUpdateTask()
 }
 
+// 根据endpoint和counter获取dsType和step
+// 获取顺序：IndexedItemCache、dbEndpointCache/dbEndpointCounterCache、DB
 // USED WHEN QUERY
 func GetTypeAndStep(endpoint string, counter string) (dsType string, step int, found bool) {
 	// get it from index cache
@@ -133,7 +135,7 @@ func GetCounterFromCache(endpointId int64, counter string) (dsType string, step 
 	return
 }
 
-// 更新 cache的统计信息
+// 初始化cache的统计信息
 func startCacheProcUpdateTask() {
 	for {
 		time.Sleep(DefaultCacheProcUpdateTaskSleepInterval)

@@ -74,7 +74,7 @@ func (ln TcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	tc.SetKeepAlivePeriod(3 * time.Minute)
 	return tc, nil
 }
-
+// 启动http服务，提供统计信息查询接口
 func Start() {
 	if !g.Config().Http.Enabled {
 		log.Println("http.Start warning, not enabled")
@@ -82,7 +82,7 @@ func Start() {
 	}
 
 	router.GET("/api/v2/counter/migrate", func(c *gin.Context) {
-		cnt := rrdtool.GetCounter()
+		cnt := rrdtool.GetCounter() // 返回统计信息
 		log.Debug("migrating counter:", cnt)
 		c.JSON(200, gin.H{"msg": "ok", "counter": cnt})
 	})

@@ -24,6 +24,10 @@ func IsRrdFileExist(filename string) bool {
 func FormRrdCacheKey(md5 string, dsType string, step int) string {
 	return fmt.Sprintf("%s_%s_%d", md5, dsType, step)
 }
+
+/*
+split key提取md5, dsType, step
+ */
 func SplitRrdCacheKey(ckey string) (md5 string, dsType string, step int, err error) {
 	ckey_slice := strings.Split(ckey, "_")
 	if len(ckey_slice) != 3 {

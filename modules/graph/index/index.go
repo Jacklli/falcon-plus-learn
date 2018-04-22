@@ -11,7 +11,7 @@ import (
 
 // 初始化索引功能模块
 func Start() {
-	InitCache()
+	InitCache() // 初始化cache
 	go StartIndexUpdateIncrTask()
 	log.Debug("index.Start ok")
 }
@@ -22,7 +22,7 @@ func ReceiveItem(item *cmodel.GraphItem, md5 string) {
 		return
 	}
 
-	uuid := item.UUID()
+	uuid := item.UUID() // endpoint/metric/SortedTags(tags)/dstype/step
 
 	// 已上报过的数据
 	if IndexedItemCache.ContainsKey(md5) {

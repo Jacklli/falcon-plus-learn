@@ -36,17 +36,20 @@ func init() {
 	io_task_chan = make(chan *io_task_t, 16)
 }
 
+/*
+使用异步方式周期性刷新GraphItems缓存到文件
+ */
 func syncDisk() {
 	time.Sleep(time.Second * g.CACHE_DELAY)
-	ticker := time.NewTicker(time.Millisecond * g.FLUSH_DISK_STEP)
+	ticker := time.NewTicker(time.Millisecond * g.FLUSH_DISK_STEP) // flush间隔，默认1s
 	defer ticker.Stop()
 	var idx int = 0
 
 	for {
 		select {
 		case <-ticker.C:
-			idx = idx % store.GraphItems.Size
-			FlushRRD(idx, false)
+			idx = idx % store.GraphItems.Size // GraphItems是一个slice，轮询每个slice元素
+			FlushRRD(idx, false) // 将下标为idx的map中的GraphItem刷新到文件
 			idx += 1
 		case <-Out_done_chan:
 			log.Println("cron recv sigout and exit...")
@@ -72,14 +75,17 @@ func writeFile(filename string, data []byte, perm os.FileMode) error {
 	return err
 }
 
+/*
+从io_task_chan读取task进行处理，如getrrd、flushrrd
+ */
 func ioWorker() {
 	var err error
 	for {
 		select {
 		case task := <-io_task_chan:
-			if task.method == IO_TASK_M_READ {
+			if task.method == IO_TASK_M_READ {  // 由api.GetRrd发送
 				if args, ok := task.args.(*readfile_t); ok {
-					args.data, err = ioutil.ReadFile(args.filename)
+					args.data, err = ioutil.ReadFile(args.filename) // 读取rrd文件
 					task.done <- err
 				}
 			} else if task.method == IO_TASK_M_WRITE {
@@ -89,15 +95,15 @@ func ioWorker() {
 					if err = file.InsureDir(baseDir); err != nil {
 						task.done <- err
 					}
-					task.done <- writeFile(args.Filename, args.Body, 0644)
+					task.done <- writeFile(args.Filename, args.Body, 0644) // 写入rrd文件
 				}
-			} else if task.method == IO_TASK_M_FLUSH {
+			} else if task.method == IO_TASK_M_FLUSH { // 由syncDisk发送
 				if args, ok := task.args.(*flushfile_t); ok {
-					task.done <- flushrrd(args.filename, args.items)
+					task.done <- flushrrd(args.filename, args.items) // 写入rrd文件
 				}
 			} else if task.method == IO_TASK_M_FETCH {
 				if args, ok := task.args.(*fetch_t); ok {
-					args.data, err = fetch(args.filename, args.cf, args.start, args.end, args.step)
+					args.data, err = fetch(args.filename, args.cf, args.start, args.end, args.step) // 查询rrd文件
 					task.done <- err
 				}
 			}

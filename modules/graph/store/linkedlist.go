@@ -55,6 +55,9 @@ func (this *SafeLinkedList) Len() int {
 	return this.L.Len()
 }
 
+/*
+以[]*cmodel.GraphItem的形式，返回SafeLinkedList所有的元素，旧的数据在前
+ */
 // remain参数表示要给linkedlist中留几个元素
 // 在cron中刷磁盘的时候要留一个，用于创建数据库索引
 // 在程序退出的时候要一个不留的全部刷到磁盘
@@ -85,12 +88,13 @@ func (this *SafeLinkedList) PushAll(items []*cmodel.GraphItem) {
 
 	size := len(items)
 	if size > 0 {
-		for i := size - 1; i >= 0; i-- {
+		for i := size - 1; i >= 0; i-- { // 新的数据头部
 			this.L.PushBack(items[i])
 		}
 	}
 }
 
+// 以[]*cmodel.GraphItem形式返回，旧数据在前
 //return为倒叙的?
 func (this *SafeLinkedList) FetchAll() ([]*cmodel.GraphItem, uint32) {
 	this.Lock()

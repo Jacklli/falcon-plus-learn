@@ -35,7 +35,7 @@ func init() {
 	Close_done_chan = make(chan int, 1)
 	connects = conn_list{list: list.New()}
 }
-
+// 启动rpc服务，提供监控数据传输接口
 func Start() {
 	if !g.Config().Rpc.Enabled {
 		log.Println("rpc.Start warning, not enabled")
@@ -54,7 +54,7 @@ func Start() {
 		log.Println("rpc.Start ok, listening on", addr)
 	}
 
-	rpc.Register(new(Graph))
+	rpc.Register(new(Graph)) // 注册rpc处理函数
 
 	go func() {
 		var tempDelay time.Duration // how long to sleep on accept failure
@@ -76,19 +76,19 @@ func Start() {
 			go func() {
 				e := connects.insert(conn)
 				defer connects.remove(e)
-				rpc.ServeConn(conn)
+				rpc.ServeConn(conn) // 处理rpc请求
 			}()
 		}
 	}()
 
 	select {
-	case <-Close_chan:
+	case <-Close_chan:  // 接收到退出信号
 		log.Println("rpc, recv sigout and exiting...")
-		listener.Close()
+		listener.Close() // 关闭监听
 		Close_done_chan <- 1
 
 		connects.Lock()
-		for e := connects.list.Front(); e != nil; e = e.Next() {
+		for e := connects.list.Front(); e != nil; e = e.Next() { // 关闭当前连接
 			e.Value.(net.Conn).Close()
 		}
 		connects.Unlock()

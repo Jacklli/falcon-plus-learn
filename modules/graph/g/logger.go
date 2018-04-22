@@ -1,6 +1,6 @@
 package g
 
-import log "github.com/Sirupsen/logrus"
+import log "github.com/Sirupsen/logrus"  // Logrus is a structured logger for Go (golang), completely API compatible with the standard library logger.
 
 func InitLog(level string) (err error) {
 	switch level {

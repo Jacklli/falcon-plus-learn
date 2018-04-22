@@ -136,7 +136,7 @@ func updateIndexAll(updateStepInSec int64) int {
 	return ret
 }
 
-// 根据item,更新mysql
+// 根据item，更新mysql，包括endpoint、tag_endpoint、endpoint_counter表
 func updateIndexFromOneItem(item *cmodel.GraphItem, conn *sql.DB) error {
 	if item == nil {
 		return nil

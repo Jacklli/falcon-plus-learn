@@ -18,6 +18,9 @@ import (
 	"fmt"
 )
 
+/*
+返回metric/k1=v1,k2=v2
+ */
 func Counter(metric string, tags map[string]string) string {
 	if tags == nil || len(tags) == 0 {
 		return metric

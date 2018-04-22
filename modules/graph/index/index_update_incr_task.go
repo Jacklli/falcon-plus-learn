@@ -42,22 +42,23 @@ func updateIndexIncr() int {
 		return ret
 	}
 
-	dbConn, err := g.GetDbConn("UpdateIndexIncrTask")
+	dbConn, err := g.GetDbConn("UpdateIndexIncrTask") // 获取一个数据库连接
 	if err != nil {
 		log.Error("[ERROR] get dbConn fail", err)
 		return ret
 	}
 
+	// 将unIndexedItemCache中的item更新到mysql，同时添加到IndexedItemCache，并从unIndexedItemCache中删除
 	keys := unIndexedItemCache.Keys()
 	for _, key := range keys {
 		icitem := unIndexedItemCache.Get(key)
 		unIndexedItemCache.Remove(key)
 		if icitem != nil {
 			// 并发更新mysql
-			semaUpdateIndexIncr.Acquire()
+			semaUpdateIndexIncr.Acquire()  // 并发量控制
 			go func(key string, icitem *IndexCacheItem, dbConn *sql.DB) {
 				defer semaUpdateIndexIncr.Release()
-				err := updateIndexFromOneItem(icitem.Item, dbConn)
+				err := updateIndexFromOneItem(icitem.Item, dbConn) // 根据item，更新mysql，包括endpoint、tag_endpoint、endpoint_counter表
 				if err != nil {
 					proc.IndexUpdateIncrErrorCnt.Incr()
 				} else {

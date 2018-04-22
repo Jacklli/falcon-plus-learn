@@ -47,6 +47,9 @@ func GetAllItems(key string) []*cmodel.GraphItem {
 	return ret
 }
 
+/*
+更新HistoryCache
+ */
 func AddItem(key string, val *cmodel.GraphItem) {
 	itemlist, found := HistoryCache.Get(key)
 	var slist *tlist.SafeListLimited
@@ -60,6 +63,6 @@ func AddItem(key string, val *cmodel.GraphItem) {
 	// old item should be drop
 	first := slist.Front()
 	if first == nil || first.(*cmodel.GraphItem).Timestamp < val.Timestamp { // first item or latest one
-		slist.PushFrontViolently(val)
+		slist.PushFrontViolently(val) // 插入item，保持固定数量
 	}
 }
